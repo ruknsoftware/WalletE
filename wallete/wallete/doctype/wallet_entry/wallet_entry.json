@@ -13,14 +13,14 @@
   "column_break_1",
   "posting_date",
   "section_break_1",
+  "transaction_type",
   "transaction_from",
-  "transaction_to",
   "amount",
   "column_break_2",
-  "debit_from",
-  "credit_to",
-  "column_break_3",
+  "mode_of_payment",
   "debit",
+  "column_break_3",
+  "wallet",
   "credit",
   "section_break_2",
   "cost_center",
@@ -81,34 +81,13 @@
   {
    "fieldname": "transaction_from",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Transaction From",
-   "options": "\nWallet\nMode of Payment",
-   "reqd": 1
-  },
-  {
-   "fieldname": "debit_from",
-   "fieldtype": "Dynamic Link",
-   "label": "Debit From",
-   "options": "transaction_from",
-   "reqd": 1
+   "options": "\nWallet\nMode of Payment"
   },
   {
    "fieldname": "column_break_2",
    "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "transaction_to",
-   "fieldtype": "Select",
-   "label": "Transaction To",
-   "options": "\nWallet\nMode of Payment",
-   "reqd": 1
-  },
-  {
-   "fieldname": "credit_to",
-   "fieldtype": "Dynamic Link",
-   "label": "Credit To",
-   "options": "transaction_to",
-   "reqd": 1
   },
   {
    "fieldname": "section_break_2",
@@ -128,6 +107,7 @@
   {
    "fieldname": "debit",
    "fieldtype": "Currency",
+   "hidden": 1,
    "label": "Debit in Company Currency",
    "options": "Company:company:default_currency",
    "read_only": 1
@@ -135,6 +115,7 @@
   {
    "fieldname": "credit",
    "fieldtype": "Currency",
+   "hidden": 1,
    "label": "Credit in Company Currency",
    "options": "Company:company:default_currency",
    "read_only": 1
@@ -154,12 +135,33 @@
    "fieldtype": "Link",
    "label": "Project",
    "options": "Project"
+  },
+  {
+   "fieldname": "transaction_type",
+   "fieldtype": "Select",
+   "label": "Transaction Type",
+   "options": "\nWallet Payment\nWallet Transfer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "wallet",
+   "fieldtype": "Link",
+   "label": "Wallet",
+   "options": "Wallet",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mode_of_payment",
+   "fieldtype": "Dynamic Link",
+   "label": "Mode Of Payment",
+   "options": "transaction_from",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-15 14:40:03.903916",
+ "modified": "2024-07-17 10:35:23.242873",
  "modified_by": "Administrator",
  "module": "WalletE",
  "name": "Wallet Entry",
