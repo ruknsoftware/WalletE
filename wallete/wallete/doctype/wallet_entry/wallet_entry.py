@@ -18,8 +18,8 @@ class WalletEntry(AccountsController):
 
     def check_duplicated_wallet(self):
         if self.transaction_type == "Wallet Transfer":
-            if self.mode_of_payment == self.wallet:
-                throw(_(f"Mode Of Payment {self.mode_of_payment} cant be equal Wallet {self.wallet}"))
+            if self.mode_of_payment == self.to_wallet:
+                throw(_(f"Mode Of Payment {self.mode_of_payment} cant be equal Wallet {self.to_wallet}"))
 
     def on_submit(self):
         self.make_gl_entries()
@@ -53,8 +53,8 @@ class WalletEntry(AccountsController):
             ),
             self.__make_gl_row(
                 transaction_from="Wallet",
-                transaction=self.wallet,
-                account=self.__get_account_with_transactions("Wallet", self.wallet),
+                transaction=self.to_wallet,
+                account=self.__get_account_with_transactions("Wallet", self.to_wallet),
                 credit=self.amount
             )
         ]

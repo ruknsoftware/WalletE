@@ -20,7 +20,7 @@
   "mode_of_payment",
   "debit",
   "column_break_3",
-  "wallet",
+  "to_wallet",
   "credit",
   "section_break_2",
   "cost_center",
@@ -144,24 +144,24 @@
    "reqd": 1
   },
   {
-   "fieldname": "wallet",
-   "fieldtype": "Link",
-   "label": "Wallet",
-   "options": "Wallet",
-   "reqd": 1
-  },
-  {
    "fieldname": "mode_of_payment",
    "fieldtype": "Dynamic Link",
    "label": "Mode Of Payment",
    "options": "transaction_from",
+   "reqd": 1
+  },
+  {
+   "fieldname": "to_wallet",
+   "fieldtype": "Link",
+   "label": "To Wallet",
+   "options": "Wallet",
    "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2024-07-17 10:35:23.242873",
+ "modified": "2024-07-17 17:46:18.532500",
  "modified_by": "Administrator",
  "module": "WalletE",
  "name": "Wallet Entry",

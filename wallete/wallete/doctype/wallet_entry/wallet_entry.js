@@ -19,7 +19,7 @@ frappe.ui.form.on('Wallet Entry', {
     },
 	mode_of_payment: function(frm) {
         if (frm.doc.transaction_type === "Wallet Transfer"){
-            frm.set_query("wallet", ()=> {
+            frm.set_query("to_wallet", ()=> {
                 return {
                     filters: [
                         ['name', '!=', frm.doc.mode_of_payment],
