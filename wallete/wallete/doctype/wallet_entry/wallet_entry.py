@@ -2,16 +2,24 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe import _
+from frappe import _, throw
 from frappe.utils import flt
 from erpnext.controllers.accounts_controller import AccountsController
 from erpnext.accounts.general_ledger import make_gl_entries
-from erpnext.setup.utils import get_exchange_rate
 
 
 class WalletEntry(AccountsController):
+
     def __init__(self, *args, **kwargs):
         super(WalletEntry, self).__init__(*args, **kwargs)
+
+    def validate(self):
+        self.check_duplicated_wallet()
+
+    def check_duplicated_wallet(self):
+        if self.transaction_type == "Wallet Transfer":
+            if self.mode_of_payment == self.wallet:
+                throw(_(f"Mode Of Payment {self.mode_of_payment} cant be equal Wallet {self.wallet}"))
 
     def on_submit(self):
         self.make_gl_entries()
@@ -27,42 +35,56 @@ class WalletEntry(AccountsController):
                     break
         return frappe.get_doc("Account", account)
 
+    def __get_party_from_transactions(self, transaction_type, transaction):
+        party_type, party = "", ""
+        if transaction_type == "Wallet":
+            party_type = "Customer"
+            party = frappe.get_value(transaction_type, transaction, "customer")
+
+        return party_type, party
+
     def build_gl_map(self):
-        accounts = [
-            self.__get_account_with_transactions(self.transaction_from, self.debit_from),
-            self.__get_account_with_transactions(self.transaction_to, self.credit_to),
+        return [
+            self.__make_gl_row(
+                transaction_from=self.transaction_from,
+                transaction=self.mode_of_payment,
+                account=self.__get_account_with_transactions(self.transaction_from, self.mode_of_payment),
+                debit=self.amount
+            ),
+            self.__make_gl_row(
+                transaction_from="Wallet",
+                transaction=self.wallet,
+                account=self.__get_account_with_transactions("Wallet", self.wallet),
+                credit=self.amount
+            )
         ]
-        gl_map = []
-        for idx, account in enumerate(accounts):
+
+    def __make_gl_row(self, transaction_from, transaction, account, debit=0.0, credit=0.0):
+        party_type, party = self.__get_party_from_transactions(transaction_from, transaction)
+
+        if debit != 0.0:
             debit = flt(self.amount, self.precision("amount"))
             credit = 0.0
-            debit_in_account_currency = flt(self.amount, self.precision("amount"))
-            credit_in_account_currency = 0.0
-            if idx == 1:
-                debit = 0.0
-                credit = flt(self.amount, self.precision("amount"))
-                debit_in_account_currency = 0.0
-                credit_in_account_currency = flt(self.amount, self.precision("amount"))
 
-            gl_map.append(
-                self.get_gl_dict(
-                    {
-                        "account": account.name,
-                        # "party_type": account_row.party_type,
-                        # "party": account_row.party,
-                        "debit": debit,
-                        "credit": credit,
-                        "account_currency": account.account_currency,
-                        "debit_in_account_currency": debit_in_account_currency,
-                        "credit_in_account_currency": credit_in_account_currency,
-                        "cost_center": self.cost_center,
-                        "project": self.project,
-                    },
-                    # item=account_row,
-                )
+        if credit != 0.0:
+            debit = 0.0
+            credit = flt(self.amount, self.precision("amount"))
+
+        return self.get_gl_dict(
+                {
+                    "account": account.name,
+                    "party_type": party_type,
+                    "party": party,
+                    "debit": debit,
+                    "credit": credit,
+                    "account_currency": account.account_currency,
+                    "debit_in_account_currency": debit,
+                    "credit_in_account_currency": credit,
+                    "cost_center": self.cost_center,
+                    "project": self.project,
+                },
+                item=account,
             )
-
-        return gl_map
 
     def make_gl_entries(self, cancel=0, adv_adj=0):
         merge_entries = frappe.db.get_single_value("Accounts Settings", "merge_similar_account_heads")
