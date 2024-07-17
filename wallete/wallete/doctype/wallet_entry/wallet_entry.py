@@ -49,13 +49,13 @@ class WalletEntry(AccountsController):
                 transaction_from=self.transaction_from,
                 transaction=self.mode_of_payment,
                 account=self.__get_account_with_transactions(self.transaction_from, self.mode_of_payment),
-                debit=self.amount
+                credit=self.amount
             ),
             self.__make_gl_row(
                 transaction_from="Wallet",
                 transaction=self.to_wallet,
                 account=self.__get_account_with_transactions("Wallet", self.to_wallet),
-                credit=self.amount
+                debit=self.amount
             )
         ]
 
