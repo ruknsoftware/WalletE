@@ -29,6 +29,11 @@ frappe.ui.form.on('Wallet Entry', {
         if (frm.doc.transaction_type === "Wallet Payment"){
             frm.set_df_property('source_of_payment', 'label', "From Mode Of Payment");
             frm.doc.transaction_from = "Mode of Payment";
+            frm.set_query("source_of_payment", ()=> {
+                return {
+                    filters: [ ['enabled', '=', 1] ]
+                };
+            });
         }else if (frm.doc.transaction_type === "Wallet Transfer"){
             frm.set_df_property('source_of_payment', 'label', "From Wallet");
             frm.doc.transaction_from = "Wallet";
