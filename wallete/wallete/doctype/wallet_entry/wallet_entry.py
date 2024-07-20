@@ -15,6 +15,8 @@ class WalletEntry(AccountsController):
 
     def validate(self):
         self.check_duplicated_wallet()
+        if self.transaction_type == "Wallet Payment" and not self.__get_mode_of_payment_account():
+            throw(_(f"Mode Of Payment {self.source_of_payment} must have {self.company} account"))
 
     def check_duplicated_wallet(self):
         if self.transaction_type == "Wallet Transfer":
@@ -24,16 +26,18 @@ class WalletEntry(AccountsController):
     def on_submit(self):
         self.make_gl_entries_for_wallet_entry()
 
-    def __get_account_with_transactions(self, transaction_type, transaction):
-        transaction_doc = frappe.get_doc(transaction_type, transaction)
-        if transaction_type == "Wallet":
-            account = transaction_doc.account
-        else:
-            for account in transaction_doc.accounts:
-                if account.company == self.company:
-                    account = account.default_account
-                    break
-        return frappe.get_doc("Account", account)
+    def __get_wallet_account(self, wallet_name):
+        wallet_account = frappe.get_doc("Wallet", wallet_name).account
+        return frappe.get_doc("Account", wallet_account)
+
+    def __get_mode_of_payment_account(self):
+        mode_of_payment = frappe.get_doc("Mode of Payment", self.source_of_payment)
+        account = ""
+        for account in mode_of_payment.accounts:
+            if account.company == self.company:
+                account = account.default_account
+                break
+        return account
 
     def __get_party_from_transactions(self, transaction_type, transaction):
         party_type, party = "", ""
@@ -44,17 +48,21 @@ class WalletEntry(AccountsController):
         return party_type, party
 
     def build_gl_map(self):
+        if self.transaction_type == "Wallet Transfer":
+            source_of_payment_account = self.__get_wallet_account(self.source_of_payment)
+        else:
+            source_of_payment_account = frappe.get_doc("Account", self.__get_mode_of_payment_account())
         return [
             self.__make_gl_row(
                 transaction_from=self.transaction_from,
                 transaction=self.source_of_payment,
-                account=self.__get_account_with_transactions(self.transaction_from, self.source_of_payment),
+                account=source_of_payment_account,
                 credit=self.amount
             ),
             self.__make_gl_row(
                 transaction_from="Wallet",
                 transaction=self.to_wallet,
-                account=self.__get_account_with_transactions("Wallet", self.to_wallet),
+                account=self.__get_wallet_account(self.to_wallet),
                 debit=self.amount
             )
         ]
