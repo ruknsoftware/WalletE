@@ -2,6 +2,9 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Wallet Entry', {
+    setup: function (frm){
+        set_to_wallet_field_query_filter(frm);
+    },
     refresh: function (frm){
         if(frm.doc.docstatus > 0) {
 			frm.add_custom_button(__('Ledger'), function() {
@@ -17,18 +20,11 @@ frappe.ui.form.on('Wallet Entry', {
 			});
 		}
     },
-	mode_of_payment: function(frm) {
-        if (frm.doc.transaction_type === "Wallet Transfer"){
-            frm.set_query("to_wallet", ()=> {
-                return {
-                    filters: [
-                        ['name', '!=', frm.doc.mode_of_payment],
-                    ]
-                };
-            });
-        }
 
+	source_of_payment: function(frm) {
+        set_to_wallet_field_query_filter(frm, frm.doc.transaction_type);
 	},
+
     transaction_type: function (frm){
         if (frm.doc.transaction_type === "Wallet Payment"){
             frm.set_df_property('source_of_payment', 'label', "From Mode Of Payment");
@@ -36,6 +32,23 @@ frappe.ui.form.on('Wallet Entry', {
         }else if (frm.doc.transaction_type === "Wallet Transfer"){
             frm.set_df_property('source_of_payment', 'label', "From Wallet");
             frm.doc.transaction_from = "Wallet";
+            frm.set_query("source_of_payment", ()=> {
+                return {
+                    filters: [ ['status', '=', 'Active'] ]
+                };
+            });
         }
     }
 });
+
+function set_to_wallet_field_query_filter(frm, transaction_type=null){
+    let filters = [ ['status', '=', 'Active'] ]
+    if (transaction_type != null && transaction_type === "Wallet Transfer"){
+        filters.push(['name', '!=', frm.doc.source_of_payment])
+    }
+    frm.set_query("to_wallet", ()=> {
+        return {
+            filters: filters
+        };
+    });
+}
