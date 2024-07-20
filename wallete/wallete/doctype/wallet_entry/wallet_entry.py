@@ -22,7 +22,7 @@ class WalletEntry(AccountsController):
                 throw(_(f"Mode Of Payment {self.source_of_payment} cant be equal Wallet {self.to_wallet}"))
 
     def on_submit(self):
-        self.make_gl_entries()
+        self.make_gl_entries_for_wallet_entry()
 
     def __get_account_with_transactions(self, transaction_type, transaction):
         transaction_doc = frappe.get_doc(transaction_type, transaction)
@@ -86,7 +86,7 @@ class WalletEntry(AccountsController):
                 item=account,
             )
 
-    def make_gl_entries(self, cancel=0, adv_adj=0):
+    def make_gl_entries_for_wallet_entry(self, cancel=0, adv_adj=0):
         merge_entries = frappe.db.get_single_value("Accounts Settings", "merge_similar_account_heads")
 
         gl_map = self.build_gl_map()
