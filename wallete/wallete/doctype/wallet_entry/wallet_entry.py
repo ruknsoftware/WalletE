@@ -15,6 +15,9 @@ class WalletEntry(AccountsController):
 
     def validate(self):
         self.check_duplicated_wallet()
+        if self.transaction_type == "Wallet Transfer":
+            self.__check_wallet_activation(self.source_of_payment)
+        self.__check_wallet_activation(self.to_wallet)
         if self.transaction_type == "Wallet Payment" and not self.__get_mode_of_payment_account():
             throw(_(f"Mode Of Payment {self.source_of_payment} must have {self.company} account"))
 
@@ -22,6 +25,10 @@ class WalletEntry(AccountsController):
         if self.transaction_type == "Wallet Transfer":
             if self.source_of_payment == self.to_wallet:
                 throw(_(f"Mode Of Payment {self.source_of_payment} cant be equal Wallet {self.to_wallet}"))
+
+    def __check_wallet_activation(self, wallet):
+        if frappe.get_value("Wallet", wallet, "status") != "Active":
+            throw(_(f"Wallet {wallet} is not active"))
 
     def on_submit(self):
         self.make_gl_entries_for_wallet_entry()
