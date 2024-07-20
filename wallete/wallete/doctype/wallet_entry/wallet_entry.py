@@ -89,7 +89,6 @@ class WalletEntry(AccountsController):
                     "debit_in_account_currency": debit,
                     "credit_in_account_currency": credit,
                     "cost_center": self.cost_center,
-                    "project": self.project,
                 },
                 item=account,
             )
