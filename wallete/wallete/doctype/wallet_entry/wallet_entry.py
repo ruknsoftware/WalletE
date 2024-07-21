@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
-from frappe import _, throw
+from frappe import _, throw, ValidationError
 from frappe.utils import flt
 from erpnext.controllers.accounts_controller import AccountsController
 from erpnext.accounts.general_ledger import make_gl_entries
@@ -57,8 +57,10 @@ class WalletEntry(AccountsController):
     def build_gl_map(self):
         if self.transaction_type == "Wallet Transfer":
             source_of_payment_account = self.__get_wallet_account(self.source_of_payment)
-        else:
+        elif self.transaction_type == "Wallet Payment":
             source_of_payment_account = frappe.get_doc("Account", self.__get_mode_of_payment_account())
+        else:
+            throw(_(f"UNKNOWN Transaction type {self.transaction_type}"))
         return [
             self.__make_gl_row(
                 transaction_from=self.transaction_from,
