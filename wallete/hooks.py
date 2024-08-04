@@ -200,3 +200,18 @@ page_js = {
 # auth_hooks = [
 #	"wallete.auth.validate"
 # ]
+
+fixtures = [
+    {
+        "doctype": "Custom Field",
+        "filters": [
+            [
+                "name",
+                "in",
+                [
+                    "Mode of Payment-wallet_payment",
+                ],
+            ]
+        ],
+    }
+]
