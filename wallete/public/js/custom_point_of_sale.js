@@ -17,9 +17,9 @@ frappe.require('point-of-sale.bundle.js', function () {
                 frappe.call({
                     method: "wallete.wallete.doctype.wallet.wallet.get_customer_wallet",
                     args: {customer: customer},
-                    callback: (r) => {
-                        if (!r.exc) {
-                            this.customer_wallet = r.message;
+                    callback: (customer_wallet) => {
+                        if (!customer_wallet.exc) {
+                            this.customer_wallet = customer_wallet.message;
                             resolve();
                         }
                     }
