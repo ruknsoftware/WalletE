@@ -30,8 +30,8 @@ frappe.require('point-of-sale.bundle.js', function () {
             const pos_profile = this.events.get_frm().doc;
             const payments = pos_profile.payments;
             payments.forEach(payment => {
-                frappe.db.get_value('Mode of Payment', payment.mode_of_payment, ["wallet_payment"], function (value) {
-                    payment.wallet_payment = value.wallet_payment;
+                frappe.db.get_value('Mode of Payment', payment.mode_of_payment, ["is_wallet_payment"], function (value) {
+                    payment.is_wallet_payment = value.is_wallet_payment;
                 });
             })
         }
@@ -120,7 +120,7 @@ frappe.require('point-of-sale.bundle.js', function () {
         attach_customer_wallet(payment, customer, customer_wallet) {
             // THIS IS OUR FUNCTION
             if (
-                this.customer_wallet !== undefined && this.customer_wallet > 0.0 && payment.wallet_payment === 1
+                this.customer_wallet !== undefined && this.customer_wallet > 0.0 && payment.is_wallet_payment === 1
             ) {
                 this.$payment_modes.find('.customer-wallet').remove();
                 this.$payment_modes.find(`[data-payment-type="${payment.type}"]`).find('.mode-of-payment-control')

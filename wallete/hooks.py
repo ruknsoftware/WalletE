@@ -209,7 +209,7 @@ fixtures = [
                 "name",
                 "in",
                 [
-                    "Mode of Payment-wallet_payment",
+                    "Mode of Payment-is_wallet_payment",
                 ],
             ]
         ],
