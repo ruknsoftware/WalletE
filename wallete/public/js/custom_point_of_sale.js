@@ -37,72 +37,19 @@ frappe.require('point-of-sale.bundle.js', function () {
         }
 
         render_payment_mode_dom() {
-            // ERPNEXT CODE
-            const pos_profile = this.events.get_frm().doc;
-            const payments = pos_profile.payments;
-            const currency = pos_profile.currency;
-            const customer = pos_profile.customer;
-
-            this.$payment_modes.html(`${
-                payments.map((payment, index) => {
-                    const mode = payment.mode_of_payment.replace(/ +/g, "_").toLowerCase();
-                    const payment_type = payment.type;
-                    const margin = index % 2 === 0 ? 'pr-2' : 'pl-2';
-                    const amount = payment.amount > 0 ? format_currency(payment.amount, currency) : '';
-
-                    return (`
-                        <div class="payment-mode-wrapper">
-                            <div class="mode-of-payment" data-mode="${mode}" data-payment-type="${payment_type}">
-                                ${payment.mode_of_payment}
-                                <div class="${mode}-amount pay-amount">${amount}</div>
-                                <div class="${mode} mode-of-payment-control"></div>
-                            </div>
-                        </div>
-                    `);
-                }).join('')
-            }`);
-
-            payments.forEach(payment => {
-                const mode = payment.mode_of_payment.replace(/ +/g, "_").toLowerCase();
-                const me = this;
-                this[`${mode}_control`] = frappe.ui.form.make_control({
-                    df: {
-                        label: payment.mode_of_payment,
-                        fieldtype: 'Currency',
-                        placeholder: __('Enter {0} amount.', [payment.mode_of_payment]),
-                        onchange: function () {
-                            const current_value = frappe.model.get_value(payment.doctype, payment.name, 'amount');
-                            if (current_value != this.value) {
-                                frappe.model
-                                    .set_value(payment.doctype, payment.name, 'amount', flt(this.value))
-                                    .then(() => me.update_totals_section())
-
-                                const formatted_currency = format_currency(this.value, currency);
-                                me.$payment_modes.find(`.${mode}-amount`).html(formatted_currency);
-                            }
-                        }
-                    },
-                    parent: this.$payment_modes.find(`.${mode}.mode-of-payment-control`),
-                    render_input: true,
-                });
-                this[`${mode}_control`].toggle_label(false);
-                this[`${mode}_control`].set_value(payment.amount);
-            });
-
-            this.render_loyalty_points_payment_mode();
-
-            this.attach_cash_shortcuts(pos_profile);
-
+            super.render_payment_mode_dom();
             // THIS IS OUR CODE
             this.set_customer_wallet();
             this.set_payment_modes_is_wallet();
+            const pos_profile = this.events.get_frm().doc;
+            const customer = pos_profile.customer;
+            const currency = pos_profile.currency;
+            const payments = pos_profile.payments;
             const customer_wallet = this.customer_wallet > 0 ? format_currency(this.customer_wallet, currency) : '';
 
             payments.forEach(payment => {
                 this.attach_customer_wallet(payment, customer, customer_wallet);
-
             });
-
         }
 
         bind_event_show_customer_wallet() {
