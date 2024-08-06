@@ -2,10 +2,8 @@ frappe.provide('erpnext.PointOfSale');
 frappe.require('point-of-sale.bundle.js', function () {
 
     erpnext.PointOfSale.Payment = class CustomPayment extends erpnext.PointOfSale.Payment {
-        constructor(wrapper, customer_wallet) {
-            super(wrapper);
-            // THIS IS OUR UPDATED ON constructor
-            this.customer_wallet = customer_wallet;
+        constructor({ events, wrapper }) {
+            super({ events, wrapper });
             this.bind_event_show_customer_wallet()
         }
 
