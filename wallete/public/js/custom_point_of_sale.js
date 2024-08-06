@@ -37,7 +37,6 @@ frappe.require('point-of-sale.bundle.js', function () {
         }
 
         render_payment_mode_dom() {
-            super.render_payment_mode_dom();
             // ERPNEXT CODE
             const pos_profile = this.events.get_frm().doc;
             const payments = pos_profile.payments;
