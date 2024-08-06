@@ -11,8 +11,8 @@ frappe.require('point-of-sale.bundle.js', function () {
 
         set_customer_wallet() {
             // THIS IS OUR FUNCTION
-            const doc = this.events.get_frm().doc;
-            const customer = doc.customer;
+            const pos_profile = this.events.get_frm().doc;
+            const customer = pos_profile.customer;
             return new Promise((resolve) => {
                 frappe.call({
                     method: "wallete.wallete.doctype.wallet.wallet.get_customer_wallet",
@@ -29,8 +29,8 @@ frappe.require('point-of-sale.bundle.js', function () {
 
         set_payment_modes_is_wallet() {
             // THIS IS OUR FUNCTION
-            const doc = this.events.get_frm().doc;
-            const payments = doc.payments;
+            const pos_profile = this.events.get_frm().doc;
+            const payments = pos_profile.payments;
             payments.map((payment, i) => {
                 frappe.db.get_value('Mode of Payment', payment.mode_of_payment, ["wallet_payment"], function (value) {
                     payment.wallet_payment = value.wallet_payment;
@@ -41,10 +41,10 @@ frappe.require('point-of-sale.bundle.js', function () {
         render_payment_mode_dom() {
             super.render_payment_mode_dom();
             // ERPNEXT CODE
-            const doc = this.events.get_frm().doc;
-            const payments = doc.payments;
-            const currency = doc.currency;
-            const customer = doc.customer;
+            const pos_profile = this.events.get_frm().doc;
+            const payments = pos_profile.payments;
+            const currency = pos_profile.currency;
+            const customer = pos_profile.customer;
 
             this.$payment_modes.html(`${
                 payments.map((p, i) => {
@@ -94,7 +94,7 @@ frappe.require('point-of-sale.bundle.js', function () {
 
             this.render_loyalty_points_payment_mode();
 
-            this.attach_cash_shortcuts(doc);
+            this.attach_cash_shortcuts(pos_profile);
 
             // THIS IS OUR CODE
             this.set_customer_wallet();
