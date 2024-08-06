@@ -29,7 +29,7 @@ frappe.require('point-of-sale.bundle.js', function () {
             // THIS IS OUR FUNCTION
             const pos_profile = this.events.get_frm().doc;
             const payments = pos_profile.payments;
-            payments.map((payment, i) => {
+            payments.forEach(payment => {
                 frappe.db.get_value('Mode of Payment', payment.mode_of_payment, ["wallet_payment"], function (value) {
                     payment.wallet_payment = value.wallet_payment;
                 });
