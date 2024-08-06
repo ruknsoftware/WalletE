@@ -45,16 +45,16 @@ frappe.require('point-of-sale.bundle.js', function () {
             const customer = pos_profile.customer;
 
             this.$payment_modes.html(`${
-                payments.map((p, i) => {
-                    const mode = p.mode_of_payment.replace(/ +/g, "_").toLowerCase();
-                    const payment_type = p.type;
-                    const margin = i % 2 === 0 ? 'pr-2' : 'pl-2';
-                    const amount = p.amount > 0 ? format_currency(p.amount, currency) : '';
+                payments.map((payment, index) => {
+                    const mode = payment.mode_of_payment.replace(/ +/g, "_").toLowerCase();
+                    const payment_type = payment.type;
+                    const margin = index % 2 === 0 ? 'pr-2' : 'pl-2';
+                    const amount = payment.amount > 0 ? format_currency(payment.amount, currency) : '';
 
                     return (`
                         <div class="payment-mode-wrapper">
                             <div class="mode-of-payment" data-mode="${mode}" data-payment-type="${payment_type}">
-                                ${p.mode_of_payment}
+                                ${payment.mode_of_payment}
                                 <div class="${mode}-amount pay-amount">${amount}</div>
                                 <div class="${mode} mode-of-payment-control"></div>
                             </div>
@@ -63,19 +63,19 @@ frappe.require('point-of-sale.bundle.js', function () {
                 }).join('')
             }`);
 
-            payments.forEach(p => {
-                const mode = p.mode_of_payment.replace(/ +/g, "_").toLowerCase();
+            payments.forEach(payment => {
+                const mode = payment.mode_of_payment.replace(/ +/g, "_").toLowerCase();
                 const me = this;
                 this[`${mode}_control`] = frappe.ui.form.make_control({
                     df: {
-                        label: p.mode_of_payment,
+                        label: payment.mode_of_payment,
                         fieldtype: 'Currency',
-                        placeholder: __('Enter {0} amount.', [p.mode_of_payment]),
+                        placeholder: __('Enter {0} amount.', [payment.mode_of_payment]),
                         onchange: function () {
-                            const current_value = frappe.model.get_value(p.doctype, p.name, 'amount');
+                            const current_value = frappe.model.get_value(payment.doctype, payment.name, 'amount');
                             if (current_value != this.value) {
                                 frappe.model
-                                    .set_value(p.doctype, p.name, 'amount', flt(this.value))
+                                    .set_value(payment.doctype, payment.name, 'amount', flt(this.value))
                                     .then(() => me.update_totals_section())
 
                                 const formatted_currency = format_currency(this.value, currency);
@@ -87,7 +87,7 @@ frappe.require('point-of-sale.bundle.js', function () {
                     render_input: true,
                 });
                 this[`${mode}_control`].toggle_label(false);
-                this[`${mode}_control`].set_value(p.amount);
+                this[`${mode}_control`].set_value(payment.amount);
             });
 
             this.render_loyalty_points_payment_mode();
@@ -99,8 +99,8 @@ frappe.require('point-of-sale.bundle.js', function () {
             this.set_payment_modes_is_wallet();
             const customer_wallet = this.customer_wallet > 0 ? format_currency(this.customer_wallet, currency) : '';
 
-            payments.map((p, i) => {
-                this.attach_customer_wallet(p, customer, customer_wallet);
+            payments.forEach(payment => {
+                this.attach_customer_wallet(payment, customer, customer_wallet);
 
             });
 
