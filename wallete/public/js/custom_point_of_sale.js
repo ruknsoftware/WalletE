@@ -9,12 +9,12 @@ frappe.require('point-of-sale.bundle.js', function () {
 
         set_customer_wallet() {
             // THIS IS OUR FUNCTION
-            const pos_profile = this.events.get_frm().doc;
-            const customer = pos_profile.customer;
+            const pos_invoice = this.events.get_frm().doc;
+            const customer = pos_invoice.customer;
             return new Promise((resolve) => {
                 frappe.call({
                     method: "wallete.wallete.doctype.wallet.wallet.get_customer_wallet",
-                    args: {customer: customer, exclude_invoice: pos_profile.name},
+                    args: {customer: customer, exclude_invoice: pos_invoice.name},
                     callback: (customer_wallet) => {
                         if (!customer_wallet.exc) {
                             this.customer_wallet = customer_wallet.message;
@@ -27,8 +27,8 @@ frappe.require('point-of-sale.bundle.js', function () {
 
         set_payment_modes_is_wallet() {
             // THIS IS OUR FUNCTION
-            const pos_profile = this.events.get_frm().doc;
-            const payments = pos_profile.payments;
+            const pos_invoice = this.events.get_frm().doc;
+            const payments = pos_invoice.payments;
             payments.forEach(payment => {
                 frappe.db.get_value('Mode of Payment', payment.mode_of_payment, ["is_wallet_payment"], function (value) {
                     payment.is_wallet_payment = value.is_wallet_payment;
@@ -41,10 +41,10 @@ frappe.require('point-of-sale.bundle.js', function () {
             // THIS IS OUR CODE
             this.set_customer_wallet();
             this.set_payment_modes_is_wallet();
-            const pos_profile = this.events.get_frm().doc;
-            const customer = pos_profile.customer;
-            const currency = pos_profile.currency;
-            const payments = pos_profile.payments;
+            const pos_invoice = this.events.get_frm().doc;
+            const customer = pos_invoice.customer;
+            const currency = pos_invoice.currency;
+            const payments = pos_invoice.payments;
             const customer_wallet = this.customer_wallet > 0 ? format_currency(this.customer_wallet, currency) : '';
 
             payments.forEach(payment => {
