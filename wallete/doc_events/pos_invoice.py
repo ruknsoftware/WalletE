@@ -7,7 +7,4 @@ def override_on_submit(doc, method):
     customer_wallet = get_customer_wallet(doc.customer, doc.name)
 
     if wallet_amount > customer_wallet:
-        throw(_("Customer Wallet Must grater than or equal paid from amount"))
-
-
-
+        throw(_("Customer Wallet Balance Must grater than or equal paid from amount"))
