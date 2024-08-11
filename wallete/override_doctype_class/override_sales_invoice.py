@@ -73,10 +73,9 @@ class OverrideSalesInvoice(SalesInvoice):
     def get_party_and_party_type_for_pos_gl_entry(self, mode_of_payment, account):
         # OUR FUNCTION
         is_wallet_mode_of_payment = frappe.get_value("Mode of Payment", mode_of_payment, 'is_wallet_payment')
-        account_type = frappe.get_cached_value("Account", account, 'account_type',)
 
         party_type, party = '', ''
-        if is_wallet_mode_of_payment and account_type == 'Receivable':
+        if is_wallet_mode_of_payment:
             party_type, party = "Customer", self.customer
 
         return party_type, party
