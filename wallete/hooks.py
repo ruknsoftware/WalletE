@@ -106,7 +106,10 @@ override_doctype_class = {
 doc_events = {
     "POS Invoice": {
         "on_submit": "wallete.doc_events.pos_invoice.override_on_submit",
-    }
+    },
+    "GL Entry": {
+        "on_submit": "wallete.doc_events.gl_entry.validate_customer_wallet_account",
+    },
 }
 
 # Scheduled Tasks
