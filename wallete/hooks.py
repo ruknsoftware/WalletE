@@ -108,7 +108,7 @@ doc_events = {
         "on_submit": "wallete.doc_events.pos_invoice.override_on_submit",
     },
     "GL Entry": {
-        "on_submit": "wallete.doc_events.gl_entry.validate_customer_wallet_account",
+        "on_submit": "wallete.doc_events.gl_entry.check_customer_wallet_account",
     },
 }
 
