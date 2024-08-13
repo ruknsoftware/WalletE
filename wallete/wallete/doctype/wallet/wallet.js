@@ -6,7 +6,7 @@ frappe.ui.form.on('Wallet', {
 		frm.set_query("account", ()=> {
 			return {
 				filters: [
-					['account_type', 'in', 'Bank, Cash, Receivable'],
+					['account_type', '=', 'Receivable'],
 					['is_group', '=', 0],
 					['company', '=', frm.doc.company]
 				]

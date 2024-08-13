@@ -1,12 +1,16 @@
 # Copyright (c) 2024, Hamza Abuabada and contributors
 # For license information, please see license.txt
 import frappe
+from frappe import throw, _
 from frappe.model.document import Document
 from erpnext.accounts.utils import get_balance_on
 
 
 class Wallet(Document):
-    pass
+    def validate(self):
+        account = frappe.get_doc("Account", self.account)
+        if account.account_type != "Receivable":
+            throw(_("Wallet Account Type must be Receivable account"))
 
 
 @frappe.whitelist()
