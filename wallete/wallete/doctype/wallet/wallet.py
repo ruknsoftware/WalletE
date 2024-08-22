@@ -5,7 +5,6 @@ from frappe import throw, _
 from frappe.model.document import Document
 from erpnext.accounts.utils import get_balance_on
 from frappe.query_builder import DocType
-from frappe.query_builder.functions import IfNull, Concat
 
 class Wallet(Document):
     def validate(self):
