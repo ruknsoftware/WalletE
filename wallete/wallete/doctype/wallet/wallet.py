@@ -5,7 +5,7 @@ from frappe import throw, _
 from frappe.model.document import Document
 from erpnext.accounts.utils import get_balance_on
 from frappe.query_builder import DocType
-from frappe.query_builder.functions import IfNull
+from frappe.query_builder.functions import IfNull, Concat
 
 class Wallet(Document):
     def validate(self):
@@ -52,10 +52,9 @@ def get_wallet_amount_from_payments(payments):
 
 def get_customer_open_pos_invoice(customer, exclude_invoice):
     POSInvoice = DocType("POS Invoice")
-
     query = (
         frappe.qb.from_(POSInvoice)
-        .select(POSInvoice.name, POSInvoice.posting_date, POSInvoice.posting_time)
+        .select(POSInvoice.name)
         .where(
             (POSInvoice.docstatus == 1) &
             (POSInvoice.consolidated_invoice.isin(["", None])) &
