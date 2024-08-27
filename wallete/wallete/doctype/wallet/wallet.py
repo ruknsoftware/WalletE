@@ -25,7 +25,7 @@ def get_customer_wallet_balance(customer, exclude_invoice=None):
             party=customer_wallet_doc.customer
         )
 
-        pos_invoices = get_customer_open_pos_invoice(
+        pos_invoices = get_untransferred_credit_balance_from_pos_invoices(
             customer=customer,
             exclude_invoice=exclude_invoice
         )
@@ -51,7 +51,7 @@ def get_wallet_amount_from_payments(payments):
     return wallet_amount
 
 
-def get_customer_open_pos_invoice(customer, exclude_invoice=None):
+def get_untransferred_credit_balance_from_pos_invoices(customer, exclude_invoice=None):
     pos_invoice = DocType("POS Invoice")
     query = (
         frappe.qb.from_(pos_invoice)
