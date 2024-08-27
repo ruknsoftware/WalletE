@@ -13,7 +13,7 @@ frappe.require('point-of-sale.bundle.js', function () {
             const customer = pos_invoice.customer;
             return new Promise((resolve) => {
                 frappe.call({
-                    method: "wallete.wallete.doctype.wallet.wallet.get_customer_wallet",
+                    method: "wallete.wallete.doctype.wallet.wallet.get_customer_wallet_balance",
                     args: {customer: customer, exclude_invoice: pos_invoice.name},
                     callback: (customer_wallet) => {
                         if (!customer_wallet.exc) {

@@ -16,7 +16,7 @@ class Wallet(Document):
 
 
 @frappe.whitelist()
-def get_customer_wallet(customer, exclude_invoice=None):
+def get_customer_wallet_balance(customer, exclude_invoice=None):
     try:
         customer_wallet_doc = frappe.get_doc("Wallet", {'customer': customer})
         customer_wallet_amount = get_balance_on(
