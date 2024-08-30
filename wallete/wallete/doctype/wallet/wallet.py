@@ -45,7 +45,7 @@ def get_wallet_amount_from_payments(payments):
     wallet_amount = 0.0
     for payment in payments:
         payment_doc = frappe.get_doc("Mode of Payment", payment.mode_of_payment)
-        if payment_doc.is_wallet_payment and payment.amount > 0.0:
+        if payment_doc.is_wallet_payment:
             wallet_amount = wallet_amount + payment.amount
 
     return wallet_amount
