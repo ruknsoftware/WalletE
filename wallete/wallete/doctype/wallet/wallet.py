@@ -22,12 +22,11 @@ def get_customer_wallet_balance(customer, exclude_invoice=None):
         customer_wallet_amount = get_balance_on(
             account=customer_wallet_doc.account,
             party_type="Customer",
-            party=customer_wallet_doc.customer
+            party=customer_wallet_doc.customer,
         )
 
         pos_invoices = get_customer_open_pos_invoices(
-            customer=customer,
-            exclude_invoice=exclude_invoice
+            customer=customer, exclude_invoice=exclude_invoice
         )
 
         open_pos_wallet_amount = 0.0
@@ -57,9 +56,9 @@ def get_customer_open_pos_invoices(customer, exclude_invoice=None):
         frappe.qb.from_(pos_invoice)
         .select(pos_invoice.name)
         .where(
-            (pos_invoice.docstatus == 1) &
-            (IfNull(pos_invoice.consolidated_invoice, "") == "") &
-            (pos_invoice.customer == customer)
+            (pos_invoice.docstatus == 1)
+            & (IfNull(pos_invoice.consolidated_invoice, "") == "")
+            & (pos_invoice.customer == customer)
         )
     )
     if exclude_invoice:
