@@ -26,9 +26,7 @@ app_license = "MIT"
 # webform_include_css = {"doctype": "public/css/doctype.css"}
 
 # include js in page
-page_js = {
-    "point-of-sale": "public/js/custom_point_of_sale.js"
-}
+page_js = {"point-of-sale": "public/js/custom_point_of_sale.js"}
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
@@ -96,7 +94,9 @@ page_js = {
 # Override standard doctype classes
 
 override_doctype_class = {
-    "Sales Invoice": "wallete.override_doctype_class.override_sales_invoice.OverrideSalesInvoice"
+    "Sales Invoice": (
+        "wallete.override_doctype_class.override_sales_invoice.OverrideSalesInvoice"
+    )
 }
 
 # Document Events
@@ -104,9 +104,7 @@ override_doctype_class = {
 # Hook on document methods and events
 
 doc_events = {
-    "POS Invoice": {
-        "on_submit": "wallete.doc_events.pos_invoice.override_on_submit",
-    },
+    "POS Invoice": {"on_submit": "wallete.doc_events.pos_invoice.override_on_submit", },
     "GL Entry": {
         "on_submit": "wallete.doc_events.gl_entry.check_customer_wallet_account",
     },
@@ -205,14 +203,6 @@ doc_events = {
 fixtures = [
     {
         "doctype": "Custom Field",
-        "filters": [
-            [
-                "name",
-                "in",
-                [
-                    "Mode of Payment-is_wallet_payment",
-                ],
-            ]
-        ],
+        "filters": [["name", "in", ["Mode of Payment-is_wallet_payment", ], ]],
     }
 ]
