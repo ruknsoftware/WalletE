@@ -1,0 +1,39 @@
+exclude: 'node_modules|.git'
+default_stages: [commit]
+fail_fast: true
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.0.1
+    hooks:
+      - id: trailing-whitespace
+        files: "ecommerce_integrations.*"
+      - id: end-of-file-fixer
+        files: "ecommerce_integrations.*"
+        exclude: ".*json$|.*txt$"
+      - id: check-yaml
+
+  - repo: https://github.com/adityahase/black
+    rev: 364d1ddcf58eb6bad2e0b757329f06f40ea83044
+    hooks:
+      - id: black
+        exclude: ".*setup.py$"
+        additional_dependencies: ['click==8.0.4']
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        exclude: ".*setup.py$"
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 5.0.4
+    hooks:
+      - id: flake8
+        additional_dependencies: [flake8-isort]
+        exclude: ".*setup.py$"
+
+ci:
+    autoupdate_schedule: weekly
+    skip: []
+    submodules: false
