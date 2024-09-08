@@ -14,7 +14,9 @@ class OverrideSalesInvoice(SalesInvoice):
             )
 
             for payment_mode in self.payments:
-                if skip_change_gl_entries and payment_mode.account == self.account_for_change_amount:
+                if (
+                        skip_change_gl_entries and payment_mode.account == self.account_for_change_amount
+                ):
                     payment_mode.base_amount -= flt(self.change_amount)
 
                 if payment_mode.amount:
@@ -72,9 +74,11 @@ class OverrideSalesInvoice(SalesInvoice):
 
     def get_party_and_party_type_for_pos_gl_entry(self, mode_of_payment, account):
         # OUR FUNCTION
-        is_wallet_mode_of_payment = frappe.get_value("Mode of Payment", mode_of_payment, 'is_wallet_payment')
+        is_wallet_mode_of_payment = frappe.get_value(
+            "Mode of Payment", mode_of_payment, 'is_wallet_payment'
+        )
 
-        party_type, party = '', ''
+        party_type, party = "", ""
         if is_wallet_mode_of_payment:
             party_type, party = "Customer", self.customer
 
