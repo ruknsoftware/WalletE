@@ -1,5 +1,8 @@
 from frappe import throw, _
-from wallete.wallete.doctype.wallet.wallet import get_customer_wallet_balance, get_wallet_amount_from_payments
+from wallete.wallete.doctype.wallet.wallet import (
+    get_customer_wallet_balance,
+    get_wallet_amount_from_payments,
+)
 
 
 def override_on_submit(doc, method):
