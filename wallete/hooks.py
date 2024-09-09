@@ -41,7 +41,7 @@ page_js = {"point-of-sale": "public/js/custom_point_of_sale.js"}
 
 # website user home page (by Role)
 # role_home_page = {
-#	"Role": "home_page"
+# 	"Role": "home_page"
 # }
 
 # Generators
@@ -55,8 +55,8 @@ page_js = {"point-of-sale": "public/js/custom_point_of_sale.js"}
 
 # add methods and filters to jinja environment
 # jinja = {
-#	"methods": "wallete.utils.jinja_methods",
-#	"filters": "wallete.utils.jinja_filters"
+# 	"methods": "wallete.utils.jinja_methods",
+# 	"filters": "wallete.utils.jinja_filters"
 # }
 
 # Installation
@@ -82,11 +82,11 @@ page_js = {"point-of-sale": "public/js/custom_point_of_sale.js"}
 # Permissions evaluated in scripted ways
 
 # permission_query_conditions = {
-#	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
+# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
 #
 # has_permission = {
-#	"Event": "frappe.desk.doctype.event.event.has_permission",
+# 	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
 
 # DocType Class
@@ -94,9 +94,7 @@ page_js = {"point-of-sale": "public/js/custom_point_of_sale.js"}
 # Override standard doctype classes
 
 override_doctype_class = {
-    "Sales Invoice": (
-        "wallete.override_doctype_class.override_sales_invoice.OverrideSalesInvoice"
-    )
+	"Sales Invoice": "wallete.override_doctype_class.override_sales_invoice.OverrideSalesInvoice"
 }
 
 # Document Events
@@ -104,31 +102,29 @@ override_doctype_class = {
 # Hook on document methods and events
 
 doc_events = {
-    "POS Invoice": {"on_submit": "wallete.doc_events.pos_invoice.override_on_submit", },
-    "GL Entry": {
-        "on_submit": "wallete.doc_events.gl_entry.check_customer_wallet_account",
-    },
+	"POS Invoice": {"on_submit": "wallete.doc_events.pos_invoice.override_on_submit",},
+	"GL Entry": {"on_submit": "wallete.doc_events.gl_entry.check_customer_wallet_account",},
 }
 
 # Scheduled Tasks
 # ---------------
 
 # scheduler_events = {
-#	"all": [
-#		"wallete.tasks.all"
-#	],
-#	"daily": [
-#		"wallete.tasks.daily"
-#	],
-#	"hourly": [
-#		"wallete.tasks.hourly"
-#	],
-#	"weekly": [
-#		"wallete.tasks.weekly"
-#	],
-#	"monthly": [
-#		"wallete.tasks.monthly"
-#	],
+# 	"all": [
+# 		"wallete.tasks.all"
+# 	],
+# 	"daily": [
+# 		"wallete.tasks.daily"
+# 	],
+# 	"hourly": [
+# 		"wallete.tasks.hourly"
+# 	],
+# 	"weekly": [
+# 		"wallete.tasks.weekly"
+# 	],
+# 	"monthly": [
+# 		"wallete.tasks.monthly"
+# 	],
 # }
 
 # Testing
@@ -140,14 +136,14 @@ doc_events = {
 # ------------------------------
 #
 # override_whitelisted_methods = {
-#	"frappe.desk.doctype.event.event.get_events": "wallete.event.get_events"
+# 	"frappe.desk.doctype.event.event.get_events": "wallete.event.get_events"
 # }
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
 # override_doctype_dashboards = {
-#	"Task": "wallete.task.get_dashboard_data"
+# 	"Task": "wallete.task.get_dashboard_data"
 # }
 
 # exempt linked doctypes from being automatically cancelled
@@ -173,36 +169,33 @@ doc_events = {
 # --------------------
 
 # user_data_fields = [
-#	{
-#		"doctype": "{doctype_1}",
-#		"filter_by": "{filter_by}",
-#		"redact_fields": ["{field_1}", "{field_2}"],
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_2}",
-#		"filter_by": "{filter_by}",
-#		"partial": 1,
-#	},
-#	{
-#		"doctype": "{doctype_3}",
-#		"strict": False,
-#	},
-#	{
-#		"doctype": "{doctype_4}"
-#	}
+# 	{
+# 		"doctype": "{doctype_1}",
+# 		"filter_by": "{filter_by}",
+# 		"redact_fields": ["{field_1}", "{field_2}"],
+# 		"partial": 1,
+# 	},
+# 	{
+# 		"doctype": "{doctype_2}",
+# 		"filter_by": "{filter_by}",
+# 		"partial": 1,
+# 	},
+# 	{
+# 		"doctype": "{doctype_3}",
+# 		"strict": False,
+# 	},
+# 	{
+# 		"doctype": "{doctype_4}"
+# 	}
 # ]
 
 # Authentication and authorization
 # --------------------------------
 
 # auth_hooks = [
-#	"wallete.auth.validate"
+# 	"wallete.auth.validate"
 # ]
 
 fixtures = [
-    {
-        "doctype": "Custom Field",
-        "filters": [["name", "in", ["Mode of Payment-is_wallet_payment", ], ]],
-    }
+	{"doctype": "Custom Field", "filters": [["name", "in", ["Mode of Payment-is_wallet_payment",],]],}
 ]
