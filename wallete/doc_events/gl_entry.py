@@ -5,7 +5,6 @@ from wallete.wallete.doctype.wallet.wallet import get_customer_wallet_balance
 
 
 def check_customer_wallet_account(doc, method):
-
 	if doc.party_type == "Customer" and doc.party:
 		customer_wallet_account = frappe.get_value("Wallet", {"customer": doc.party}, "account")
 
