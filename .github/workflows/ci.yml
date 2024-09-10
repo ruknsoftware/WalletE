@@ -4,10 +4,9 @@ name: CI
 on:
   push:
     branches:
-      - develop
+      - main
   pull_request:
     branches:
-      - develop
       - main
 
 concurrency:
@@ -89,7 +88,10 @@ jobs:
 
 
       - name: Run Tests
-        run: cd ~/frappe-bench/ && bench --site test_site run-tests --app wallete --coverage
+        working-directory: /home/runner/frappe-bench
+        run: |
+          bench --site test_site set-config allow_tests true
+          bench --site test_site run-tests --app wallete
         env:
           TYPE: server
 
