@@ -36,6 +36,7 @@ bench setup requirements --dev
 bench start &>> ~/frappe-bench/bench_start.log &
 CI=Yes bench build --app frappe &
 bench --site test_site reinstall --yes
+echo 'after reinstall site'
 
 bench get-app wallete "${GITHUB_WORKSPACE}"
 bench --site test_site install-app wallete
