@@ -21,7 +21,10 @@ jobs:
     strategy:
       fail-fast: false
 
-    name: Server
+      matrix:
+        container: [ 1 ]
+
+    name: Python Unit Tests
 
     services:
       mysql:
@@ -30,7 +33,7 @@ jobs:
           MARIADB_ROOT_PASSWORD: 'root'
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=5s --health-timeout=2s --health-retries=3
+        options: --health-cmd="mariadb-admin ping" --health-interval=5s --health-timeout=2s --health-retries=3
 
     steps:
       - name: Clone
@@ -54,7 +57,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/*requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/*requirements.txt') }}${{ hashFiles('**/pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-pip-
             ${{ runner.os }}-
@@ -90,15 +93,31 @@ jobs:
 
       - name: Run Tests
         working-directory: /home/runner/frappe-bench
-        run: |
-          bench --site test_site set-config allow_tests true
-          bench --site test_site --verbose run-tests --app wallete
+        run: cd ~/frappe-bench/ && bench --site test_site run-parallel-tests --app wallete --total-builds ${{ strategy.job-total }} --build-number ${{ matrix.container }}
         env:
           TYPE: server
+          CAPTURE_COVERAGE: ${{ github.event_name != 'pull_request' }}
 
       - name: Upload coverage data
-        uses: codecov/codecov-action@v2
+        uses: actions/upload-artifact@v3
+        if: github.event_name != 'pull_request'
         with:
+            name: coverage-${{ matrix.container }}
+            path: /home/runner/frappe-bench/sites/coverage.xml
+  coverage:
+    name: Coverage Wrap Up
+    needs: tests
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' }}
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+      - name: Upload coverage data
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
-          files: /home/runner/frappe-bench/sites/coverage.xml
           verbose: true
