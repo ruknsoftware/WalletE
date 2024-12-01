@@ -5,3 +5,5 @@
 tags
 wallete/docs/current
 node_modules/
+.aider*
+.helix
