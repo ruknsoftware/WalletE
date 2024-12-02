@@ -9,6 +9,9 @@ on:
     branches:
       - main
 
+env:
+    FRAPPE_BRANCH: ${{ github.base_ref || github.ref_name }}
+
 concurrency:
   group: develop-${{ github.event.number }}
   cancel-in-progress: true
@@ -89,7 +92,7 @@ jobs:
         run: |
           bash ${GITHUB_WORKSPACE}/.github/helper/install.sh
         env:
-          BRANCH_TO_CLONE: ${{ vars.FRAPPE_BRANCH }}
+          BRANCH_TO_CLONE: ${{ env.FRAPPE_BRANCH }}
 
       - name: Run Tests
         working-directory: /home/runner/frappe-bench
