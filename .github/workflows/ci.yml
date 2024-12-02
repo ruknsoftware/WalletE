@@ -10,7 +10,7 @@ on:
       - main
 
 env:
-    FRAPPE_BRANCH: ${{ github.base_ref || github.ref_name }}
+    FRAPPE_BRANCH: ${{ vars.FRAPPE_BRANCH }}
 
 concurrency:
   group: develop-${{ github.event.number }}
