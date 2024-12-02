@@ -89,7 +89,7 @@ jobs:
         run: |
           bash ${GITHUB_WORKSPACE}/.github/helper/install.sh
         env:
-          BRANCH_TO_CLONE: ${{ vars.Frappe_BRANCH }}
+          BRANCH_TO_CLONE: ${{ vars.FRAPPE_BRANCH }}
 
       - name: Run Tests
         working-directory: /home/runner/frappe-bench
