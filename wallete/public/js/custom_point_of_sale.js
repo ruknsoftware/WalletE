@@ -12,6 +12,10 @@ frappe.require('point-of-sale.bundle.js', function () {
             // THIS IS OUR FUNCTION
             const pos_invoice = this.events.get_frm().doc;
             const customer = pos_invoice.customer;
+            if (!customer) {
+                this.customer_wallet = 0;
+                return Promise.resolve();
+            }
             return new Promise((resolve) => {
                 frappe.call({
                     method: "wallete.wallete.doctype.wallet.wallet.get_customer_wallet_balance",
@@ -29,28 +33,34 @@ frappe.require('point-of-sale.bundle.js', function () {
         set_payment_modes_is_wallet() {
             // THIS IS OUR FUNCTION
             const pos_invoice = this.events.get_frm().doc;
-            const payments = pos_invoice.payments;
+            const payments = (pos_invoice.payments || []);
             payments.forEach(payment => {
+                if (!payment || !payment.mode_of_payment) return;
                 frappe.db.get_value('Mode of Payment', payment.mode_of_payment, ["is_wallet_payment"], function (value) {
-                    payment.is_wallet_payment = value.is_wallet_payment;
+                    payment.is_wallet_payment = value && (value.is_wallet_payment || 0);
                 });
-            })
+            });
         }
 
         render_payment_mode_dom() {
             super.render_payment_mode_dom();
             // THIS IS OUR CODE
-            this.set_customer_wallet();
+            this.bind_event_show_customer_wallet();
             this.set_payment_modes_is_wallet();
             const pos_invoice = this.events.get_frm().doc;
             const customer = pos_invoice.customer;
             const currency = pos_invoice.currency;
-            const payments = pos_invoice.payments;
-            const customer_wallet = this.customer_wallet > 0 ? format_currency(this.customer_wallet, currency) : '';
+            const payments = (pos_invoice.payments || []);
+            this.set_customer_wallet()
+                .then(() => {
+                    const customer_wallet = this.customer_wallet > 0 ? format_currency(this.customer_wallet, currency) : '';
 
-            payments.forEach(payment => {
-                this.attach_customer_wallet(payment, customer, customer_wallet);
-            });
+                    payments.forEach(payment => {
+                        this.attach_customer_wallet(payment, customer, customer_wallet);
+                    });
+                })
+                .catch(() => {
+                });
         }
 
         bind_event_show_customer_wallet() {
@@ -67,7 +77,7 @@ frappe.require('point-of-sale.bundle.js', function () {
         attach_customer_wallet(payment, customer, customer_wallet) {
             // THIS IS OUR FUNCTION
             if (
-                this.customer_wallet !== undefined && this.customer_wallet > 0.0 && payment.is_wallet_payment === 1
+                this.customer_wallet !== undefined && this.customer_wallet > 0.0 && !!payment.is_wallet_payment
             ) {
                 this.$payment_modes.find('.customer-wallet').remove();
                 this.$payment_modes.find(`[data-payment-type="${payment.type}"]`).find('.mode-of-payment-control')
@@ -77,6 +87,6 @@ frappe.require('point-of-sale.bundle.js', function () {
         }
     };
 
-    wrapper.pos = new erpnext.PointOfSale.Controller(wrapper);
-    window.cur_pos = wrapper.pos;
+
+
 });
