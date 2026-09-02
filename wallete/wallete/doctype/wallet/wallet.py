@@ -6,6 +6,7 @@ from frappe import _, throw
 from frappe.model.document import Document
 from frappe.query_builder import DocType
 from frappe.query_builder.functions import IfNull
+from frappe.utils import flt
 
 
 class Wallet(Document):
@@ -22,6 +23,9 @@ def get_customer_wallet_balance(customer, exclude_invoice=None):
 		customer_wallet_amount = get_balance_on(
 			account=customer_wallet_doc.account, party_type="Customer", party=customer_wallet_doc.customer,
 		)
+		# get_balance_on is debit - credit; liability wallets hold a credit balance
+		if frappe.get_cached_value("Account", customer_wallet_doc.account, "root_type") == "Liability":
+			customer_wallet_amount = -flt(customer_wallet_amount)
 
 		pos_invoices = get_customer_open_pos_invoices(customer=customer, exclude_invoice=exclude_invoice)
 
