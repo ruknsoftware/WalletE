@@ -46,7 +46,7 @@ def apply_mode_of_payment_accounts(doc):
 
 
 @frappe.whitelist()
-def get_customer_wallet_balance(customer, exclude_invoice=None):
+def get_customer_wallet_balance(customer: str, exclude_invoice: str | None = None):
 	try:
 		customer_wallet_amount = get_customer_wallet_ledger_balance(customer)
 		pos_invoices = get_customer_open_pos_invoices(customer=customer, exclude_invoice=exclude_invoice)
