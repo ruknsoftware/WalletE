@@ -40,9 +40,7 @@ class TestWallet(FrappeTestCase):
 			frappe.get_doc("Mode of Payment", "Cash"), company, cash_account
 		)
 
-		payment = _make_wallet_entry(
-			company, "Wallet Payment", "Mode of Payment", "Cash", wallet1, 1000
-		)
+		payment = _make_wallet_entry(company, "Wallet Payment", "Mode of Payment", "Cash", wallet1, 1000)
 		self._assert_gl(
 			"Wallet Entry",
 			payment.name,
@@ -75,12 +73,7 @@ class TestWallet(FrappeTestCase):
 		opening = create_opening_entry(pos_profile, frappe.session.user)
 
 		pos = create_pos_invoice(
-			item=item,
-			qty=1,
-			rate=100,
-			update_stock=0,
-			pos_profile=pos_profile.name,
-			do_not_save=1,
+			item=item, qty=1, rate=100, update_stock=0, pos_profile=pos_profile.name, do_not_save=1,
 		)
 		pos.set("payments", [])
 		pos.append("payments", {"mode_of_payment": mop, "amount": 100})
@@ -241,12 +234,7 @@ def _get_or_create_wallet_mop(company, fallback_account):
 		mop = frappe.get_doc("Mode of Payment", name)
 	else:
 		mop = frappe.get_doc(
-			{
-				"doctype": "Mode of Payment",
-				"mode_of_payment": name,
-				"type": "General",
-				"enabled": 1,
-			}
+			{"doctype": "Mode of Payment", "mode_of_payment": name, "type": "General", "enabled": 1,}
 		).insert()
 	mop.is_wallet_payment = 1
 	mop.save()

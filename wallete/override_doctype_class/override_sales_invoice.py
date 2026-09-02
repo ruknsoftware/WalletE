@@ -3,7 +3,6 @@ from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.accounts.utils import get_account_currency
 from frappe.utils import cint, flt
 
-
 from wallete.wallete.doctype.wallet.wallet import (
 	apply_mode_of_payment_accounts,
 	is_wallet_mode_of_payment,
