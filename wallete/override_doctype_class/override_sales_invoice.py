@@ -4,7 +4,16 @@ from erpnext.accounts.utils import get_account_currency
 from frappe.utils import cint, flt
 
 
+from wallete.wallete.doctype.wallet.wallet import (
+	apply_mode_of_payment_accounts,
+	is_wallet_mode_of_payment,
+)
+
+
 class OverrideSalesInvoice(SalesInvoice):
+	def set_account_for_mode_of_payment(self):
+		apply_mode_of_payment_accounts(self)
+
 	def make_pos_gl_entries(self, gl_entries):
 		# ERPNEXT CODE
 		if cint(self.is_pos):
@@ -70,13 +79,6 @@ class OverrideSalesInvoice(SalesInvoice):
 				self.make_gle_for_change_amount(gl_entries)
 
 	def get_party_and_party_type_for_pos_gl_entry(self, mode_of_payment, account):
-		# OUR FUNCTION
-		is_wallet_mode_of_payment = frappe.get_value(
-			"Mode of Payment", mode_of_payment, "is_wallet_payment"
-		)
-
-		party_type, party = "", ""
-		if is_wallet_mode_of_payment:
-			party_type, party = "Customer", self.customer
-
-		return party_type, party
+		if is_wallet_mode_of_payment(mode_of_payment):
+			return "Customer", self.customer
+		return "", ""

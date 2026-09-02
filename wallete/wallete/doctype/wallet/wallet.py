@@ -16,6 +16,35 @@ class Wallet(Document):
 			throw(_("Wallet Account must be a Liability (credit) account with type Receivable"))
 
 
+def is_wallet_mode_of_payment(mode_of_payment):
+	if not mode_of_payment:
+		return False
+	return bool(frappe.get_cached_value("Mode of Payment", mode_of_payment, "is_wallet_payment"))
+
+
+def get_customer_wallet_account(customer):
+	wallet = frappe.db.get_value(
+		"Wallet", {"customer": customer}, ["name", "account", "status"], as_dict=True
+	)
+	if not wallet:
+		throw(_("Customer {0} has no Wallet").format(customer))
+	if wallet.status != "Active":
+		throw(_("Wallet {0} is not active").format(wallet.name))
+	return wallet.account
+
+
+def apply_mode_of_payment_accounts(doc):
+	from erpnext.accounts.doctype.sales_invoice.sales_invoice import get_bank_cash_account
+
+	for payment in doc.get("payments") or []:
+		if not payment.mode_of_payment:
+			continue
+		if is_wallet_mode_of_payment(payment.mode_of_payment):
+			payment.account = get_customer_wallet_account(doc.customer)
+		else:
+			payment.account = get_bank_cash_account(payment.mode_of_payment, doc.company).get("account")
+
+
 @frappe.whitelist()
 def get_customer_wallet_balance(customer, exclude_invoice=None):
 	try:
