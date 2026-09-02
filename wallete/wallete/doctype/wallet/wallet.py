@@ -48,25 +48,25 @@ def apply_mode_of_payment_accounts(doc):
 @frappe.whitelist()
 def get_customer_wallet_balance(customer, exclude_invoice=None):
 	try:
-		customer_wallet_doc = frappe.get_doc("Wallet", {"customer": customer})
-		customer_wallet_amount = get_balance_on(
-			account=customer_wallet_doc.account, party_type="Customer", party=customer_wallet_doc.customer,
-		)
-		# get_balance_on is debit - credit; liability wallets hold a credit balance
-		if frappe.get_cached_value("Account", customer_wallet_doc.account, "root_type") == "Liability":
-			customer_wallet_amount = -flt(customer_wallet_amount)
-
+		customer_wallet_amount = get_customer_wallet_ledger_balance(customer)
 		pos_invoices = get_customer_open_pos_invoices(customer=customer, exclude_invoice=exclude_invoice)
-
-		open_pos_wallet_amount = 0.0
-		if len(pos_invoices) != 0:
-			for pos_invoice in pos_invoices:
-				wallet_amount_from_payments = get_wallet_amount_from_payments(pos_invoice.payments)
-				open_pos_wallet_amount = open_pos_wallet_amount + wallet_amount_from_payments
-
+		open_pos_wallet_amount = sum(
+			get_wallet_amount_from_payments(pos_invoice.payments) for pos_invoice in pos_invoices
+		)
 		return customer_wallet_amount - open_pos_wallet_amount
 	except frappe.DoesNotExistError:
 		return 0.0
+
+
+def get_customer_wallet_ledger_balance(customer):
+	customer_wallet_doc = frappe.get_doc("Wallet", {"customer": customer})
+	customer_wallet_amount = get_balance_on(
+		account=customer_wallet_doc.account, party_type="Customer", party=customer_wallet_doc.customer,
+	)
+	# get_balance_on is debit - credit; liability wallets hold a credit balance
+	if frappe.get_cached_value("Account", customer_wallet_doc.account, "root_type") == "Liability":
+		customer_wallet_amount = -flt(customer_wallet_amount)
+	return customer_wallet_amount
 
 
 def get_wallet_amount_from_payments(payments):
