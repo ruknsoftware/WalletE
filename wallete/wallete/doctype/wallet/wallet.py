@@ -11,8 +11,8 @@ from frappe.query_builder.functions import IfNull
 class Wallet(Document):
 	def validate(self):
 		account = frappe.get_doc("Account", self.account)
-		if account.account_type != "Receivable":
-			throw(_("Wallet Account Type must be Receivable account"))
+		if account.account_type != "Receivable" or account.root_type != "Liability":
+			throw(_("Wallet Account must be a Liability (credit) account with type Receivable"))
 
 
 @frappe.whitelist()

@@ -7,6 +7,7 @@ frappe.ui.form.on('Wallet', {
 			return {
 				filters: [
 					['account_type', '=', 'Receivable'],
+					['root_type', '=', 'Liability'],
 					['is_group', '=', 0],
 					['company', '=', frm.doc.company]
 				]
