@@ -133,7 +133,7 @@ doc_events = {
 # Testing
 # -------
 
-# before_tests = "wallete.install.before_tests"
+before_tests = "erpnext.setup.utils.before_tests"
 
 # Overriding Methods
 # ------------------------------
