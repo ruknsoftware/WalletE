@@ -6,54 +6,45 @@ from erpnext.accounts.doctype.account.test_account import create_account
 from erpnext.accounts.doctype.mode_of_payment.test_mode_of_payment import (
 	set_default_account_for_mode_of_payment,
 )
+from erpnext.accounts.doctype.pos_closing_entry.pos_closing_entry import (
+	make_closing_entry_from_opening,
+)
+from erpnext.accounts.doctype.pos_invoice.test_pos_invoice import create_pos_invoice
+from erpnext.accounts.doctype.pos_opening_entry.test_pos_opening_entry import create_opening_entry
+from erpnext.accounts.doctype.pos_profile.test_pos_profile import make_pos_profile
+from erpnext.accounts.doctype.sales_invoice.test_sales_invoice import create_sales_invoice
+from erpnext.stock.doctype.item.test_item import make_item
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import flt, nowdate
 
 
 class TestWallet(FrappeTestCase):
 	def test_wallet_is_liability_and_gl_sides(self):
-		company = "_Test Company"
-		cash_account = "Cash - _TC"
-		wallet_account = create_account(
-			account_name="Customer Wallet",
-			parent_account="Current Liabilities - _TC",
-			company=company,
-			account_type="Receivable",
+		company, cash_account, wallet_account = _company_accounts()
+		self.assertRaises(
+			frappe.ValidationError,
+			frappe.get_doc(
+				{
+					"doctype": "Wallet",
+					"customer": "_Test Customer",
+					"company": company,
+					"status": "Active",
+					"account": "Debtors - _TC",
+				}
+			).validate,
 		)
-
-		wallet = frappe.get_doc(
-			{
-				"doctype": "Wallet",
-				"customer": "_Test Customer",
-				"company": company,
-				"status": "Active",
-				"account": "Debtors - _TC",
-			}
-		)
-		self.assertRaises(frappe.ValidationError, wallet.validate)
 
 		wallet1 = _get_or_create_wallet("_Test Customer", company, wallet_account)
 		wallet2 = _get_or_create_wallet("_Test Customer 1", company, wallet_account)
-
 		set_default_account_for_mode_of_payment(
 			frappe.get_doc("Mode of Payment", "Cash"), company, cash_account
 		)
 
-		payment = frappe.get_doc(
-			{
-				"doctype": "Wallet Entry",
-				"company": company,
-				"posting_date": nowdate(),
-				"transaction_type": "Wallet Payment",
-				"transaction_from": "Mode of Payment",
-				"source_of_payment": "Cash",
-				"to_wallet": wallet1,
-				"amount": 1000,
-			}
-		).insert()
-		payment.submit()
-
+		payment = _make_wallet_entry(
+			company, "Wallet Payment", "Mode of Payment", "Cash", wallet1, 1000
+		)
 		self._assert_gl(
+			"Wallet Entry",
 			payment.name,
 			[
 				{"account": cash_account, "debit": 1000, "credit": 0, "party": None},
@@ -61,21 +52,9 @@ class TestWallet(FrappeTestCase):
 			],
 		)
 
-		transfer = frappe.get_doc(
-			{
-				"doctype": "Wallet Entry",
-				"company": company,
-				"posting_date": nowdate(),
-				"transaction_type": "Wallet Transfer",
-				"transaction_from": "Wallet",
-				"source_of_payment": wallet1,
-				"to_wallet": wallet2,
-				"amount": 1000,
-			}
-		).insert()
-		transfer.submit()
-
+		transfer = _make_wallet_entry(company, "Wallet Transfer", "Wallet", wallet1, wallet2, 1000)
 		self._assert_gl(
+			"Wallet Entry",
 			transfer.name,
 			[
 				{"account": wallet_account, "debit": 1000, "credit": 0, "party": "_Test Customer"},
@@ -83,15 +62,129 @@ class TestWallet(FrappeTestCase):
 			],
 		)
 
-	def _assert_gl(self, voucher_no, expected):
+	def test_pos_invoice_wallet_payment_account(self):
+		company, cash_account, wallet_account = _company_accounts()
+		wallet = _get_or_create_wallet("_Test Customer", company, wallet_account)
+		mop = _get_or_create_wallet_mop(company, cash_account)
+		_make_wallet_entry(company, "Wallet Payment", "Mode of Payment", "Cash", wallet, 100)
+		item = _ensure_pos_item()
+
+		pos_profile = make_pos_profile()
+		pos_profile.append("payments", {"mode_of_payment": mop})
+		pos_profile.save()
+		opening = create_opening_entry(pos_profile, frappe.session.user)
+
+		pos = create_pos_invoice(
+			item=item,
+			qty=1,
+			rate=100,
+			update_stock=0,
+			pos_profile=pos_profile.name,
+			do_not_save=1,
+		)
+		pos.set("payments", [])
+		pos.append("payments", {"mode_of_payment": mop, "amount": 100})
+		pos.insert()
+		self.assertEqual(pos.payments[0].account, wallet_account)
+		pos.submit()
+
+		closing = make_closing_entry_from_opening(opening)
+		for row in closing.payment_reconciliation:
+			row.closing_amount = row.expected_amount
+		closing.submit()
+
+		pos.reload()
+		self.assertTrue(pos.consolidated_invoice)
+		self._assert_gl_contains(
+			"Sales Invoice",
+			pos.consolidated_invoice,
+			[
+				{"account": wallet_account, "debit": 100, "credit": 0, "party": "_Test Customer"},
+				{"account": "Sales - _TC", "debit": 0, "credit": 100, "party": None},
+			],
+		)
+		cash_debit = sum(
+			flt(r.debit)
+			for r in frappe.get_all(
+				"GL Entry",
+				filters={
+					"voucher_type": "Sales Invoice",
+					"voucher_no": pos.consolidated_invoice,
+					"is_cancelled": 0,
+				},
+				fields=["account", "debit"],
+			)
+			if r.account == cash_account
+		)
+		self.assertEqual(cash_debit, 0)
+
+	def test_sales_invoice_wallet_payment_gl_sides(self):
+		company, cash_account, wallet_account = _company_accounts()
+		wallet = _get_or_create_wallet("_Test Customer", company, wallet_account)
+		mop = _get_or_create_wallet_mop(company, cash_account)
+		_make_wallet_entry(company, "Wallet Payment", "Mode of Payment", "Cash", wallet, 100)
+
+		si = create_sales_invoice(
+			item=_ensure_pos_item(), qty=1, rate=100, is_pos=1, update_stock=0, do_not_save=True
+		)
+		si.set("payments", [])
+		si.append("payments", {"mode_of_payment": mop, "amount": 100})
+		si.insert()
+		self.assertEqual(si.payments[0].account, wallet_account)
+		si.submit()
+
+		self._assert_gl_contains(
+			"Sales Invoice",
+			si.name,
+			[
+				{"account": wallet_account, "debit": 100, "credit": 0, "party": "_Test Customer"},
+				{"account": "Sales - _TC", "debit": 0, "credit": 100, "party": None},
+			],
+		)
+		cash_debit = sum(
+			flt(r.debit)
+			for r in frappe.get_all(
+				"GL Entry",
+				filters={"voucher_type": "Sales Invoice", "voucher_no": si.name, "is_cancelled": 0},
+				fields=["account", "debit"],
+			)
+			if r.account == cash_account
+		)
+		self.assertEqual(cash_debit, 0)
+
+	def _assert_gl(self, voucher_type, voucher_no, expected):
 		rows = frappe.get_all(
 			"GL Entry",
-			filters={"voucher_type": "Wallet Entry", "voucher_no": voucher_no, "is_cancelled": 0},
+			filters={"voucher_type": voucher_type, "voucher_no": voucher_no, "is_cancelled": 0},
 			fields=["account", "debit", "credit", "party"],
 		)
 		got = {(r.account, flt(r.debit), flt(r.credit), r.party or None) for r in rows}
 		want = {(r["account"], flt(r["debit"]), flt(r["credit"]), r["party"]) for r in expected}
 		self.assertEqual(got, want)
+
+	def _assert_gl_contains(self, voucher_type, voucher_no, expected):
+		rows = frappe.get_all(
+			"GL Entry",
+			filters={"voucher_type": voucher_type, "voucher_no": voucher_no, "is_cancelled": 0},
+			fields=["account", "debit", "credit", "party"],
+		)
+		got = {(r.account, flt(r.debit), flt(r.credit), r.party or None) for r in rows}
+		for row in expected:
+			self.assertIn((row["account"], flt(row["debit"]), flt(row["credit"]), row["party"]), got)
+
+
+def _company_accounts():
+	company = "_Test Company"
+	return (
+		company,
+		"Cash - _TC",
+		create_account(
+			account_name="Customer Wallet",
+			parent_account="Current Liabilities - _TC",
+			company=company,
+			account_type="Receivable",
+		),
+	)
 
 
 def _get_or_create_wallet(customer, company, account):
@@ -115,3 +208,48 @@ def _get_or_create_wallet(customer, company, account):
 		.insert()
 		.name
 	)
+
+
+def _make_wallet_entry(company, transaction_type, transaction_from, source, to_wallet, amount):
+	doc = frappe.get_doc(
+		{
+			"doctype": "Wallet Entry",
+			"company": company,
+			"posting_date": nowdate(),
+			"transaction_type": transaction_type,
+			"transaction_from": transaction_from,
+			"source_of_payment": source,
+			"to_wallet": to_wallet,
+			"amount": amount,
+		}
+	).insert()
+	doc.submit()
+	return doc
+
+
+def _ensure_pos_item():
+	item_group = frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "Products"
+	return make_item(
+		"Wallet POS Test Item",
+		properties={"is_stock_item": 0, "is_sales_item": 1, "item_group": item_group},
+	).name
+
+
+def _get_or_create_wallet_mop(company, fallback_account):
+	name = "Wallet"
+	if frappe.db.exists("Mode of Payment", name):
+		mop = frappe.get_doc("Mode of Payment", name)
+	else:
+		mop = frappe.get_doc(
+			{
+				"doctype": "Mode of Payment",
+				"mode_of_payment": name,
+				"type": "General",
+				"enabled": 1,
+			}
+		).insert()
+	mop.is_wallet_payment = 1
+	mop.save()
+	set_default_account_for_mode_of_payment(mop, company, fallback_account)
+	frappe.clear_document_cache("Mode of Payment", mop.name)
+	return mop.name
