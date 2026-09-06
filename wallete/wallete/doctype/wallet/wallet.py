@@ -58,6 +58,53 @@ def get_customer_wallet_balance(customer: str, exclude_invoice: str | None = Non
 		return 0.0
 
 
+def allocate_wallet_spend(customer, account, amount):
+	"""FIFO against Wallet Entry.outstanding_amount for this customer's wallet."""
+	remaining = flt(amount)
+	if remaining <= 0:
+		return []
+
+	wallets = frappe.get_all(
+		"Wallet", filters={"customer": customer, "account": account}, pluck="name"
+	)
+	if not wallets:
+		return [{"voucher_type": None, "voucher_no": None, "amount": remaining}]
+
+	entries = frappe.get_all(
+		"Wallet Entry",
+		filters={
+			"to_wallet": ["in", wallets],
+			"docstatus": 1,
+			"outstanding_amount": [">", 0],
+		},
+		fields=["name", "outstanding_amount"],
+		order_by="posting_date asc, name asc",
+	)
+
+	allocations = []
+	for row in entries:
+		available = flt(row.outstanding_amount)
+		take = min(remaining, available)
+		if take <= 0:
+			continue
+		allocations.append(
+			{"voucher_type": "Wallet Entry", "voucher_no": row.name, "amount": take}
+		)
+		frappe.db.set_value(
+			"Wallet Entry",
+			row.name,
+			"outstanding_amount",
+			available - take,
+			update_modified=False,
+		)
+		remaining = flt(remaining - take)
+		if remaining <= 0:
+			break
+	if remaining > 0:
+		allocations.append({"voucher_type": None, "voucher_no": None, "amount": remaining})
+	return allocations
+
+
 def get_customer_wallet_ledger_balance(customer):
 	customer_wallet_doc = frappe.get_doc("Wallet", {"customer": customer})
 	customer_wallet_amount = get_balance_on(

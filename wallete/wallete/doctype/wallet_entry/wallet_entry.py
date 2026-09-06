@@ -37,10 +37,12 @@ class WalletEntry(AccountsController):
 
 	def on_submit(self):
 		self.make_gl_entries_for_wallet_entry()
+		self.db_set("outstanding_amount", self.amount)
 
 	def on_cancel(self):
 		super().on_cancel()
 		self.make_gl_entries_for_wallet_entry(cancel=1)
+		self.db_set("outstanding_amount", 0)
 
 	def __get_wallet_account(self, wallet_name):
 		wallet_account = frappe.get_doc("Wallet", wallet_name).account
