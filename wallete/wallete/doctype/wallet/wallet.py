@@ -65,18 +65,14 @@ def allocate_wallet_spend(customer, account, amount, apply=True):
 		return []
 
 	wallets = frappe.get_all(
-		"Wallet", filters={"customer": customer, "account": account}, pluck="name",limit=0,
+		"Wallet", filters={"customer": customer, "account": account}, pluck="name", limit=0,
 	)
 	if not wallets:
 		return [{"voucher_type": None, "voucher_no": None, "amount": remaining}]
 
 	entries = frappe.get_all(
 		"Wallet Entry",
-		filters={
-			"to_wallet": ["in", wallets],
-			"docstatus": 1,
-			"outstanding_amount": [">", 0],
-		},
+		filters={"to_wallet": ["in", wallets], "docstatus": 1, "outstanding_amount": [">", 0],},
 		fields=["name", "outstanding_amount"],
 		order_by="posting_date asc, name asc",
 		limit=0,
@@ -88,16 +84,10 @@ def allocate_wallet_spend(customer, account, amount, apply=True):
 		take = min(remaining, available)
 		if take <= 0:
 			continue
-		allocations.append(
-			{"voucher_type": "Wallet Entry", "voucher_no": row.name, "amount": take}
-		)
+		allocations.append({"voucher_type": "Wallet Entry", "voucher_no": row.name, "amount": take})
 		if apply:
 			frappe.db.set_value(
-				"Wallet Entry",
-				row.name,
-				"outstanding_amount",
-				available - take,
-				update_modified=False,
+				"Wallet Entry", row.name, "outstanding_amount", available - take, update_modified=False,
 			)
 		remaining = flt(remaining - take)
 		if remaining <= 0:

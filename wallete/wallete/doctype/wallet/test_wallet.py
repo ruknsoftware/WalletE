@@ -244,11 +244,7 @@ class TestWallet(FrappeTestCase):
 		self.assertFalse(
 			frappe.get_all(
 				"GL Entry",
-				filters={
-					"voucher_type": "Wallet Entry",
-					"voucher_no": payment.name,
-					"is_cancelled": 0,
-				},
+				filters={"voucher_type": "Wallet Entry", "voucher_no": payment.name, "is_cancelled": 0,},
 				limit=1,
 			)
 		)

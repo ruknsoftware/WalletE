@@ -82,10 +82,7 @@ class WalletEntry(AccountsController):
 			source_customer = frappe.db.get_value("Wallet", self.source_of_payment, "customer")
 			rows = []
 			for payment_slice in allocate_wallet_spend(
-				source_customer,
-				source_account.name,
-				self.amount,
-				apply=self.docstatus == 1,
+				source_customer, source_account.name, self.amount, apply=self.docstatus == 1,
 			):
 				rows.append(
 					self.__make_gl_row(
@@ -149,10 +146,7 @@ class WalletEntry(AccountsController):
 	def make_gl_entries_for_wallet_entry(self, cancel=0, adv_adj=0):
 		if cancel:
 			make_reverse_gl_entries(
-				voucher_type=self.doctype,
-				voucher_no=self.name,
-				adv_adj=adv_adj,
-				update_outstanding="Yes",
+				voucher_type=self.doctype, voucher_no=self.name, adv_adj=adv_adj, update_outstanding="Yes",
 			)
 			return
 

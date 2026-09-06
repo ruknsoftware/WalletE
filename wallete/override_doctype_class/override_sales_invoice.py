@@ -77,9 +77,7 @@ class OverrideSalesInvoice(SalesInvoice):
 						if payment_slice.get("voucher_no"):
 							gle["against_voucher_type"] = payment_slice["voucher_type"]
 							gle["against_voucher"] = payment_slice["voucher_no"]
-						gl_entries.append(
-							self.get_gl_dict(gle, payment_mode_account_currency, item=self)
-						)
+						gl_entries.append(self.get_gl_dict(gle, payment_mode_account_currency, item=self))
 
 			if not skip_change_gl_entries:
 				self.make_gle_for_change_amount(gl_entries)
@@ -92,10 +90,7 @@ class OverrideSalesInvoice(SalesInvoice):
 		if not is_wallet_mode_of_payment(payment_mode.mode_of_payment):
 			return [{"voucher_type": None, "voucher_no": None, "amount": payment_mode.base_amount}]
 		return allocate_wallet_spend(
-			self.customer,
-			payment_mode.account,
-			payment_mode.base_amount,
-			apply=self.docstatus == 1,
+			self.customer, payment_mode.account, payment_mode.base_amount, apply=self.docstatus == 1,
 		)
 
 	def get_party_and_party_type_for_pos_gl_entry(self, mode_of_payment, account):
