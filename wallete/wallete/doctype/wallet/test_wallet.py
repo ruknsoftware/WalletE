@@ -68,7 +68,9 @@ class TestWallet(FrappeTestCase):
 		self._assert_wallet_debit_against("Wallet Entry", transfer.name, wallet_account, payment.name)
 		transfer.cancel()
 		payment.reload()
+		transfer.reload()
 		self.assertEqual(flt(payment.outstanding_amount), 1000)
+		self.assertEqual(flt(transfer.outstanding_amount), 0)
 
 	def test_pos_invoice_wallet_payment_account(self):
 		company, cash_account, wallet_account = _company_accounts()
@@ -173,6 +175,9 @@ class TestWallet(FrappeTestCase):
 		wallet must debit against that entry (outstanding 600), not open a new AR row.
 		Transferring the remaining 600 must clear the source advance and leave a 600
 		advance on the destination Wallet Entry.
+
+		Cancel in reverse: transfer cancel restores 600 on the source top-up, then SI
+		cancel restores the original 1000.
 		"""
 		company, cash_account, wallet_account = _company_accounts()
 		source = _ensure_customer("_Test Wallet Source Customer")
@@ -211,6 +216,42 @@ class TestWallet(FrappeTestCase):
 		self.assertEqual(flt(topup.outstanding_amount), 0)
 		self.assertEqual(flt(transfer.outstanding_amount), 600)
 		self._assert_wallet_debit_against("Wallet Entry", transfer.name, wallet_account, topup.name)
+
+		transfer.cancel()
+		topup.reload()
+		transfer.reload()
+		self.assertEqual(flt(topup.outstanding_amount), 600)
+		self.assertEqual(flt(transfer.outstanding_amount), 0)
+
+		si.cancel()
+		topup.reload()
+		self.assertEqual(flt(topup.outstanding_amount), 1000)
+
+	def test_cancel_wallet_payment_clears_outstanding(self):
+		"""Cancelling a top-up zeros outstanding and reverses its GL."""
+		company, cash_account, wallet_account = _company_accounts()
+		customer = _ensure_customer("_Test Wallet Cancel Payment Customer")
+		wallet = _get_or_create_wallet(customer, company, wallet_account)
+		set_default_account_for_mode_of_payment(
+			frappe.get_doc("Mode of Payment", "Cash"), company, cash_account
+		)
+
+		payment = _make_wallet_entry(company, "Wallet Payment", "Mode of Payment", "Cash", wallet, 500)
+		self.assertEqual(flt(payment.outstanding_amount), 500)
+		payment.cancel()
+		payment.reload()
+		self.assertEqual(flt(payment.outstanding_amount), 0)
+		self.assertFalse(
+			frappe.get_all(
+				"GL Entry",
+				filters={
+					"voucher_type": "Wallet Entry",
+					"voucher_no": payment.name,
+					"is_cancelled": 0,
+				},
+				limit=1,
+			)
+		)
 
 	def _assert_wallet_debit_against(self, voucher_type, voucher_no, account, wallet_entry):
 		rows = frappe.get_all(
