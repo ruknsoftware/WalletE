@@ -4,7 +4,7 @@
 import frappe
 from erpnext.accounts.general_ledger import make_gl_entries
 from erpnext.controllers.accounts_controller import AccountsController
-from frappe import ValidationError, _, throw
+from frappe import _, throw
 from frappe.utils import flt
 
 
@@ -38,18 +38,20 @@ class WalletEntry(AccountsController):
 	def on_submit(self):
 		self.make_gl_entries_for_wallet_entry()
 
+	def on_cancel(self):
+		super().on_cancel()
+		self.make_gl_entries_for_wallet_entry(cancel=1)
+
 	def __get_wallet_account(self, wallet_name):
 		wallet_account = frappe.get_doc("Wallet", wallet_name).account
 		return frappe.get_doc("Account", wallet_account)
 
 	def __get_mode_of_payment_account(self):
 		mode_of_payment = frappe.get_doc("Mode of Payment", self.source_of_payment)
-		account = ""
-		for account in mode_of_payment.accounts:
-			if account.company == self.company:
-				account = account.default_account
-				break
-		return account
+		for row in mode_of_payment.accounts:
+			if row.company == self.company:
+				return row.default_account
+		return None
 
 	def __get_party_from_transactions(self, transaction_type, transaction):
 		party_type, party = "", ""
@@ -66,18 +68,19 @@ class WalletEntry(AccountsController):
 			source_of_payment_account = frappe.get_doc("Account", self.__get_mode_of_payment_account())
 		else:
 			throw(_("UNKNOWN Transaction type {0}").format(self.transaction_type))
+		# Liability wallet: top-up Dr cash / Cr wallet; transfer Dr source wallet / Cr dest wallet
 		return [
 			self.__make_gl_row(
 				transaction_from=self.transaction_from,
 				transaction=self.source_of_payment,
 				account=source_of_payment_account,
-				credit=self.amount,
+				debit=self.amount,
 			),
 			self.__make_gl_row(
 				transaction_from="Wallet",
 				transaction=self.to_wallet,
 				account=self.__get_wallet_account(self.to_wallet),
-				debit=self.amount,
+				credit=self.amount,
 			),
 		]
 

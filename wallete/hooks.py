@@ -96,7 +96,8 @@ page_js = {"point-of-sale": "public/js/custom_point_of_sale.js"}
 # Override standard doctype classes
 
 override_doctype_class = {
-	"Sales Invoice": "wallete.override_doctype_class.override_sales_invoice.OverrideSalesInvoice"
+	"Sales Invoice": "wallete.override_doctype_class.override_sales_invoice.OverrideSalesInvoice",
+	"POS Invoice": "wallete.override_doctype_class.override_pos_invoice.OverridePOSInvoice",
 }
 
 # Document Events
@@ -132,7 +133,7 @@ doc_events = {
 # Testing
 # -------
 
-# before_tests = "wallete.install.before_tests"
+before_tests = "erpnext.setup.utils.before_tests"
 
 # Overriding Methods
 # ------------------------------
