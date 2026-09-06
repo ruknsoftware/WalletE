@@ -42,6 +42,7 @@ class WalletEntry(AccountsController):
 		self.db_set("outstanding_amount", self.amount)
 
 	def on_cancel(self):
+		self.ignore_linked_doctypes = ("GL Entry", "Payment Ledger Entry")
 		restore_wallet_spend(self.doctype, self.name)
 		super().on_cancel()
 		self.make_gl_entries_for_wallet_entry(cancel=1)

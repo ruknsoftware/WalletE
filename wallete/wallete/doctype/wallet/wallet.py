@@ -65,7 +65,7 @@ def allocate_wallet_spend(customer, account, amount, apply=True):
 		return []
 
 	wallets = frappe.get_all(
-		"Wallet", filters={"customer": customer, "account": account}, pluck="name",limit=1,
+		"Wallet", filters={"customer": customer, "account": account}, pluck="name",limit=0,
 	)
 	if not wallets:
 		return [{"voucher_type": None, "voucher_no": None, "amount": remaining}]
@@ -79,7 +79,7 @@ def allocate_wallet_spend(customer, account, amount, apply=True):
 		},
 		fields=["name", "outstanding_amount"],
 		order_by="posting_date asc, name asc",
-		limit=1,
+		limit=0,
 	)
 
 	allocations = []
@@ -118,7 +118,7 @@ def restore_wallet_spend(voucher_type, voucher_no):
 			"is_cancelled": 0,
 		},
 		fields=["against_voucher", "debit"],
-		limit=1,
+		limit=0,
 	)
 	for row in rows:
 		if not row.against_voucher or flt(row.debit) <= 0:

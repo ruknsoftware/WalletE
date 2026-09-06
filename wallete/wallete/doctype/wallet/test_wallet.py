@@ -34,8 +34,10 @@ class TestWallet(FrappeTestCase):
 			).validate,
 		)
 
-		wallet1 = _get_or_create_wallet("_Test Customer", company, wallet_account)
-		wallet2 = _get_or_create_wallet("_Test Customer 1", company, wallet_account)
+		source = _ensure_customer("_Test Wallet Liability Source")
+		dest = _ensure_customer("_Test Wallet Liability Dest")
+		wallet1 = _get_or_create_wallet(source, company, wallet_account)
+		wallet2 = _get_or_create_wallet(dest, company, wallet_account)
 		set_default_account_for_mode_of_payment(
 			frappe.get_doc("Mode of Payment", "Cash"), company, cash_account
 		)
@@ -46,7 +48,7 @@ class TestWallet(FrappeTestCase):
 			payment.name,
 			[
 				{"account": cash_account, "debit": 1000, "credit": 0, "party": None},
-				{"account": wallet_account, "debit": 0, "credit": 1000, "party": "_Test Customer"},
+				{"account": wallet_account, "debit": 0, "credit": 1000, "party": source},
 			],
 		)
 
@@ -55,8 +57,8 @@ class TestWallet(FrappeTestCase):
 			"Wallet Entry",
 			transfer.name,
 			[
-				{"account": wallet_account, "debit": 1000, "credit": 0, "party": "_Test Customer"},
-				{"account": wallet_account, "debit": 0, "credit": 1000, "party": "_Test Customer 1"},
+				{"account": wallet_account, "debit": 1000, "credit": 0, "party": source},
+				{"account": wallet_account, "debit": 0, "credit": 1000, "party": dest},
 			],
 		)
 		payment.reload()
