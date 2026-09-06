@@ -70,12 +70,19 @@ def allocate_wallet_spend(customer, account, amount, apply=True):
 	if not wallets:
 		return [{"voucher_type": None, "voucher_no": None, "amount": remaining}]
 
-	entries = frappe.get_all(
-		"Wallet Entry",
-		filters={"to_wallet": ["in", wallets], "docstatus": 1, "outstanding_amount": [">", 0],},
-		fields=["name", "outstanding_amount"],
-		order_by="posting_date asc, name asc",
-		limit=0,
+	wallet_entry = DocType("Wallet Entry")
+	entries = (
+		frappe.qb.from_(wallet_entry)
+		.select(wallet_entry.name, wallet_entry.outstanding_amount)
+		.where(
+			(wallet_entry.to_wallet.isin(wallets))
+			& (wallet_entry.docstatus == 1)
+			& (wallet_entry.outstanding_amount > 0)
+		)
+		.orderby(wallet_entry.posting_date)
+		.orderby(wallet_entry.name)
+		.for_update()
+		.run(as_dict=True)
 	)
 
 	allocations = []
