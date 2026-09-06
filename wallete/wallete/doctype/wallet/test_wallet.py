@@ -164,6 +164,52 @@ class TestWallet(FrappeTestCase):
 		topup.reload()
 		self.assertEqual(flt(topup.outstanding_amount), 100)
 
+	def test_topup_si_then_transfer_outstanding(self):
+		"""Wallet spend must reduce the same Wallet Entry outstanding that the top-up created.
+
+		Top-up 1000 books a credit advance on that Wallet Entry. Paying an SI 400 with
+		wallet must debit against that entry (outstanding 600), not open a new AR row.
+		Transferring the remaining 600 must clear the source advance and leave a 600
+		advance on the destination Wallet Entry.
+		"""
+		company, cash_account, wallet_account = _company_accounts()
+		source = _ensure_customer("_Test Wallet Source Customer")
+		dest = _ensure_customer("_Test Wallet Dest Customer")
+		wallet1 = _get_or_create_wallet(source, company, wallet_account)
+		wallet2 = _get_or_create_wallet(dest, company, wallet_account)
+		mop = _get_or_create_wallet_mop(company, cash_account)
+		set_default_account_for_mode_of_payment(
+			frappe.get_doc("Mode of Payment", "Cash"), company, cash_account
+		)
+
+		topup = _make_wallet_entry(company, "Wallet Payment", "Mode of Payment", "Cash", wallet1, 1000)
+		self.assertEqual(flt(topup.outstanding_amount), 1000)
+
+		si = create_sales_invoice(
+			item=_ensure_pos_item(),
+			qty=1,
+			rate=400,
+			is_pos=1,
+			update_stock=0,
+			customer=source,
+			do_not_save=True,
+		)
+		si.set("payments", [])
+		si.append("payments", {"mode_of_payment": mop, "amount": 400})
+		si.insert()
+		si.submit()
+
+		topup.reload()
+		self.assertEqual(flt(topup.outstanding_amount), 600)
+		self._assert_wallet_debit_against("Sales Invoice", si.name, wallet_account, topup.name)
+
+		transfer = _make_wallet_entry(company, "Wallet Transfer", "Wallet", wallet1, wallet2, 600)
+		topup.reload()
+		transfer.reload()
+		self.assertEqual(flt(topup.outstanding_amount), 0)
+		self.assertEqual(flt(transfer.outstanding_amount), 600)
+		self._assert_wallet_debit_against("Wallet Entry", transfer.name, wallet_account, topup.name)
+
 	def _assert_wallet_debit_against(self, voucher_type, voucher_no, account, wallet_entry):
 		rows = frappe.get_all(
 			"GL Entry",
@@ -232,6 +278,23 @@ def _get_or_create_wallet(customer, company, account):
 				"company": company,
 				"status": "Active",
 				"account": account,
+			}
+		)
+		.insert()
+		.name
+	)
+
+
+def _ensure_customer(name):
+	if frappe.db.exists("Customer", name):
+		return name
+	return (
+		frappe.get_doc(
+			{
+				"doctype": "Customer",
+				"customer_name": name,
+				"customer_group": "_Test Customer Group",
+				"territory": "_Test Territory",
 			}
 		)
 		.insert()
