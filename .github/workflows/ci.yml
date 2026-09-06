@@ -95,10 +95,3 @@ jobs:
           bench --site test_site --verbose run-tests --app wallete
         env:
           TYPE: server
-
-      - name: Upload coverage data
-        uses: codecov/codecov-action@v2
-        with:
-          fail_ci_if_error: true
-          files: /home/runner/frappe-bench/sites/coverage.xml
-          verbose: true
