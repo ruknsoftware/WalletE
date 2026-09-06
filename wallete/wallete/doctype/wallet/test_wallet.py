@@ -59,6 +59,14 @@ class TestWallet(FrappeTestCase):
 				{"account": wallet_account, "debit": 0, "credit": 1000, "party": "_Test Customer 1"},
 			],
 		)
+		payment.reload()
+		self.assertEqual(flt(payment.outstanding_amount), 0)
+		transfer.reload()
+		self.assertEqual(flt(transfer.outstanding_amount), 1000)
+		self._assert_wallet_debit_against("Wallet Entry", transfer.name, wallet_account, payment.name)
+		transfer.cancel()
+		payment.reload()
+		self.assertEqual(flt(payment.outstanding_amount), 1000)
 
 	def test_pos_invoice_wallet_payment_account(self):
 		company, cash_account, wallet_account = _company_accounts()
@@ -163,15 +171,15 @@ class TestWallet(FrappeTestCase):
 				"voucher_type": voucher_type,
 				"voucher_no": voucher_no,
 				"account": account,
+				"debit": [">", 0],
 				"is_cancelled": 0,
 			},
-			fields=["debit", "against_voucher_type", "against_voucher"],
+			fields=["against_voucher_type", "against_voucher"],
 			limit=1,
 		)
-		debits = [r for r in rows if flt(r.debit) > 0]
-		self.assertTrue(debits)
-		self.assertEqual(debits[0].against_voucher_type, "Wallet Entry")
-		self.assertEqual(debits[0].against_voucher, wallet_entry)
+		self.assertTrue(rows)
+		self.assertEqual(rows[0].against_voucher_type, "Wallet Entry")
+		self.assertEqual(rows[0].against_voucher, wallet_entry)
 
 	def _assert_gl(self, voucher_type, voucher_no, expected):
 		rows = frappe.get_all(
