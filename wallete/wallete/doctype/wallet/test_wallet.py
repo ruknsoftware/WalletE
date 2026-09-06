@@ -64,7 +64,7 @@ class TestWallet(FrappeTestCase):
 		company, cash_account, wallet_account = _company_accounts()
 		wallet = _get_or_create_wallet("_Test Customer", company, wallet_account)
 		mop = _get_or_create_wallet_mop(company, cash_account)
-		_make_wallet_entry(company, "Wallet Payment", "Mode of Payment", "Cash", wallet, 100)
+		topup = _make_wallet_entry(company, "Wallet Payment", "Mode of Payment", "Cash", wallet, 100)
 		item = _ensure_pos_item()
 
 		pos_profile = make_pos_profile()
@@ -110,12 +110,17 @@ class TestWallet(FrappeTestCase):
 			if r.account == cash_account
 		)
 		self.assertEqual(cash_debit, 0)
+		topup.reload()
+		self.assertEqual(flt(topup.outstanding_amount), 0)
+		self._assert_wallet_debit_against(
+			"Sales Invoice", pos.consolidated_invoice, wallet_account, topup.name
+		)
 
 	def test_sales_invoice_wallet_payment_gl_sides(self):
 		company, cash_account, wallet_account = _company_accounts()
 		wallet = _get_or_create_wallet("_Test Customer", company, wallet_account)
 		mop = _get_or_create_wallet_mop(company, cash_account)
-		_make_wallet_entry(company, "Wallet Payment", "Mode of Payment", "Cash", wallet, 100)
+		topup = _make_wallet_entry(company, "Wallet Payment", "Mode of Payment", "Cash", wallet, 100)
 
 		si = create_sales_invoice(
 			item=_ensure_pos_item(), qty=1, rate=100, is_pos=1, update_stock=0, do_not_save=True
@@ -144,6 +149,29 @@ class TestWallet(FrappeTestCase):
 			if r.account == cash_account
 		)
 		self.assertEqual(cash_debit, 0)
+		topup.reload()
+		self.assertEqual(flt(topup.outstanding_amount), 0)
+		self._assert_wallet_debit_against("Sales Invoice", si.name, wallet_account, topup.name)
+		si.cancel()
+		topup.reload()
+		self.assertEqual(flt(topup.outstanding_amount), 100)
+
+	def _assert_wallet_debit_against(self, voucher_type, voucher_no, account, wallet_entry):
+		rows = frappe.get_all(
+			"GL Entry",
+			filters={
+				"voucher_type": voucher_type,
+				"voucher_no": voucher_no,
+				"account": account,
+				"is_cancelled": 0,
+			},
+			fields=["debit", "against_voucher_type", "against_voucher"],
+			limit=1,
+		)
+		debits = [r for r in rows if flt(r.debit) > 0]
+		self.assertTrue(debits)
+		self.assertEqual(debits[0].against_voucher_type, "Wallet Entry")
+		self.assertEqual(debits[0].against_voucher, wallet_entry)
 
 	def _assert_gl(self, voucher_type, voucher_no, expected):
 		rows = frappe.get_all(
