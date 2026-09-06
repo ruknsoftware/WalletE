@@ -41,6 +41,12 @@ class WalletEntry(AccountsController):
 		self.make_gl_entries_for_wallet_entry()
 		self.db_set("outstanding_amount", self.amount)
 
+	def before_cancel(self):
+		if flt(self.outstanding_amount) < flt(self.amount):
+			throw(
+				_("Cannot cancel Wallet Entry {0} because it has already been allocated").format(self.name)
+			)
+
 	def on_cancel(self):
 		self.ignore_linked_doctypes = ("GL Entry", "Payment Ledger Entry")
 		restore_wallet_spend(self.doctype, self.name)

@@ -209,6 +209,8 @@ class TestWallet(FrappeTestCase):
 		topup.reload()
 		self.assertEqual(flt(topup.outstanding_amount), 600)
 		self._assert_wallet_debit_against("Sales Invoice", si.name, wallet_account, topup.name)
+		self.assertRaises(frappe.ValidationError, topup.cancel)
+		topup.reload()
 
 		transfer = _make_wallet_entry(company, "Wallet Transfer", "Wallet", wallet1, wallet2, 600)
 		topup.reload()
