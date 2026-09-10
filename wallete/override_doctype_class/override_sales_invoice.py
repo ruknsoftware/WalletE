@@ -4,8 +4,10 @@ from erpnext.accounts.utils import get_account_currency
 from frappe.utils import cint, flt
 
 from wallete.wallete.doctype.wallet.wallet import (
+	allocate_wallet_spend,
 	apply_mode_of_payment_accounts,
 	is_wallet_mode_of_payment,
+	restore_wallet_spend,
 )
 
 
@@ -55,27 +57,41 @@ class OverrideSalesInvoice(SalesInvoice):
 					party_type, party = self.get_party_and_party_type_for_pos_gl_entry(
 						payment_mode.mode_of_payment, payment_mode.account
 					)
-					# ERPNEXT CODE
-					gl_entries.append(
-						self.get_gl_dict(
-							{
-								"account": payment_mode.account,
-								"party_type": party_type,
-								"party": party,
-								"against": self.customer,
-								"debit": payment_mode.base_amount,
-								"debit_in_account_currency": payment_mode.base_amount
-								if payment_mode_account_currency == self.company_currency
-								else payment_mode.amount,
-								"cost_center": self.cost_center,
-							},
-							payment_mode_account_currency,
-							item=self,
+					# ERPNEXT CODE — wallet spend is split against Wallet Entry advances
+					for payment_slice in self._wallet_payment_slices(payment_mode):
+						debit = payment_slice["amount"]
+						debit_in_account_currency = (
+							debit
+							if payment_mode_account_currency == self.company_currency
+							else flt(payment_mode.amount) * debit / flt(payment_mode.base_amount)
 						)
-					)
+						gle = {
+							"account": payment_mode.account,
+							"party_type": party_type,
+							"party": party,
+							"against": self.customer,
+							"debit": debit,
+							"debit_in_account_currency": debit_in_account_currency,
+							"cost_center": self.cost_center,
+						}
+						if payment_slice.get("voucher_no"):
+							gle["against_voucher_type"] = payment_slice["voucher_type"]
+							gle["against_voucher"] = payment_slice["voucher_no"]
+						gl_entries.append(self.get_gl_dict(gle, payment_mode_account_currency, item=self))
 
 			if not skip_change_gl_entries:
 				self.make_gle_for_change_amount(gl_entries)
+
+	def on_cancel(self):
+		restore_wallet_spend(self.doctype, self.name)
+		super().on_cancel()
+
+	def _wallet_payment_slices(self, payment_mode):
+		if not is_wallet_mode_of_payment(payment_mode.mode_of_payment):
+			return [{"voucher_type": None, "voucher_no": None, "amount": payment_mode.base_amount}]
+		return allocate_wallet_spend(
+			self.customer, payment_mode.account, payment_mode.base_amount, apply=self.docstatus == 1,
+		)
 
 	def get_party_and_party_type_for_pos_gl_entry(self, mode_of_payment, account):
 		if is_wallet_mode_of_payment(mode_of_payment):

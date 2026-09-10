@@ -2,10 +2,12 @@
 # For license information, please see license.txt
 
 import frappe
-from erpnext.accounts.general_ledger import make_gl_entries
+from erpnext.accounts.general_ledger import make_gl_entries, make_reverse_gl_entries
 from erpnext.controllers.accounts_controller import AccountsController
 from frappe import _, throw
 from frappe.utils import flt
+
+from wallete.wallete.doctype.wallet.wallet import allocate_wallet_spend, restore_wallet_spend
 
 
 class WalletEntry(AccountsController):
@@ -37,10 +39,20 @@ class WalletEntry(AccountsController):
 
 	def on_submit(self):
 		self.make_gl_entries_for_wallet_entry()
+		self.db_set("outstanding_amount", self.amount)
+
+	def before_cancel(self):
+		if flt(self.outstanding_amount) < flt(self.amount):
+			throw(
+				_("Cannot cancel Wallet Entry {0} because it has already been allocated").format(self.name)
+			)
 
 	def on_cancel(self):
+		self.ignore_linked_doctypes = ("GL Entry", "Payment Ledger Entry")
+		restore_wallet_spend(self.doctype, self.name)
 		super().on_cancel()
 		self.make_gl_entries_for_wallet_entry(cancel=1)
+		self.db_set("outstanding_amount", 0)
 
 	def __get_wallet_account(self, wallet_name):
 		wallet_account = frappe.get_doc("Wallet", wallet_name).account
@@ -62,60 +74,91 @@ class WalletEntry(AccountsController):
 		return party_type, party
 
 	def build_gl_map(self):
-		if self.transaction_type == "Wallet Transfer":
-			source_of_payment_account = self.__get_wallet_account(self.source_of_payment)
-		elif self.transaction_type == "Wallet Payment":
-			source_of_payment_account = frappe.get_doc("Account", self.__get_mode_of_payment_account())
-		else:
-			throw(_("UNKNOWN Transaction type {0}").format(self.transaction_type))
-		# Liability wallet: top-up Dr cash / Cr wallet; transfer Dr source wallet / Cr dest wallet
-		return [
-			self.__make_gl_row(
-				transaction_from=self.transaction_from,
-				transaction=self.source_of_payment,
-				account=source_of_payment_account,
-				debit=self.amount,
-			),
-			self.__make_gl_row(
-				transaction_from="Wallet",
-				transaction=self.to_wallet,
-				account=self.__get_wallet_account(self.to_wallet),
-				credit=self.amount,
-			),
-		]
-
-	def __make_gl_row(self, transaction_from, transaction, account, debit=0.0, credit=0.0):
-		party_type, party = self.__get_party_from_transactions(transaction_from, transaction)
-
-		if debit != 0.0:
-			debit = flt(self.amount, self.precision("amount"))
-			credit = 0.0
-
-		if credit != 0.0:
-			debit = 0.0
-			credit = flt(self.amount, self.precision("amount"))
-
-		return self.get_gl_dict(
-			{
-				"account": account.name,
-				"party_type": party_type,
-				"party": party,
-				"debit": debit,
-				"credit": credit,
-				"account_currency": account.account_currency,
-				"debit_in_account_currency": debit,
-				"credit_in_account_currency": credit,
-				"cost_center": self.cost_center,
-			},
-			item=account,
+		dest_account = self.__get_wallet_account(self.to_wallet)
+		dest_row = self.__make_gl_row(
+			transaction_from="Wallet",
+			transaction=self.to_wallet,
+			account=dest_account,
+			credit=self.amount,
+			against_voucher_type=self.doctype,
+			against_voucher=self.name,
 		)
+		if self.transaction_type == "Wallet Transfer":
+			source_account = self.__get_wallet_account(self.source_of_payment)
+			source_customer = frappe.db.get_value("Wallet", self.source_of_payment, "customer")
+			rows = []
+			for payment_slice in allocate_wallet_spend(
+				source_customer, source_account.name, self.amount, apply=self.docstatus == 1,
+			):
+				rows.append(
+					self.__make_gl_row(
+						transaction_from=self.transaction_from,
+						transaction=self.source_of_payment,
+						account=source_account,
+						debit=payment_slice["amount"],
+						against_voucher_type=payment_slice.get("voucher_type"),
+						against_voucher=payment_slice.get("voucher_no"),
+					)
+				)
+			rows.append(dest_row)
+			return rows
+		if self.transaction_type == "Wallet Payment":
+			source_account = frappe.get_doc("Account", self.__get_mode_of_payment_account())
+			return [
+				self.__make_gl_row(
+					transaction_from=self.transaction_from,
+					transaction=self.source_of_payment,
+					account=source_account,
+					debit=self.amount,
+				),
+				dest_row,
+			]
+		throw(_("UNKNOWN Transaction type {0}").format(self.transaction_type))
+
+	def __make_gl_row(
+		self,
+		transaction_from,
+		transaction,
+		account,
+		debit=0.0,
+		credit=0.0,
+		against_voucher_type=None,
+		against_voucher=None,
+	):
+		party_type, party = self.__get_party_from_transactions(transaction_from, transaction)
+		if debit:
+			debit = flt(debit, self.precision("amount"))
+			credit = 0.0
+		else:
+			debit = 0.0
+			credit = flt(credit, self.precision("amount"))
+
+		args = {
+			"account": account.name,
+			"party_type": party_type,
+			"party": party,
+			"debit": debit,
+			"credit": credit,
+			"account_currency": account.account_currency,
+			"debit_in_account_currency": debit,
+			"credit_in_account_currency": credit,
+			"cost_center": self.cost_center,
+		}
+		if against_voucher:
+			args["against_voucher_type"] = against_voucher_type
+			args["against_voucher"] = against_voucher
+		return self.get_gl_dict(args, item=account)
 
 	def make_gl_entries_for_wallet_entry(self, cancel=0, adv_adj=0):
+		if cancel:
+			make_reverse_gl_entries(
+				voucher_type=self.doctype, voucher_no=self.name, adv_adj=adv_adj, update_outstanding="Yes",
+			)
+			return
+
 		merge_entries = frappe.db.get_single_value("Accounts Settings", "merge_similar_account_heads")
-
 		gl_map = self.build_gl_map()
-
 		if gl_map:
 			make_gl_entries(
-				gl_map, cancel=cancel, adv_adj=adv_adj, merge_entries=merge_entries, update_outstanding="Yes",
+				gl_map, cancel=0, adv_adj=adv_adj, merge_entries=merge_entries, update_outstanding="Yes",
 			)
